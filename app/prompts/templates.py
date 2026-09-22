@@ -33,6 +33,38 @@ Important rules:
   that policy compliance cannot be confirmed.
 - Do not assign a definitive risk level when important policy or
   expense information is missing.
+  
+Tool usage instructions:
+
+1. Use get_expense_policy when company policy
+   information is needed for the expense analysis.
+
+2. Use validate_receipt when receipt details are
+   provided in the expense request.
+
+3. For validate_receipt, extract these arguments
+   from the user's expense details:
+   - receipt_available (boolean)
+   - merchant (string)
+   - receipt_date (string)
+   - receipt_amount (number)
+
+4. Convert receipt_available to true only when the
+   employee explicitly states that a receipt is available.
+   Otherwise, use false.
+
+5. Do not invent missing receipt details.
+   Use empty strings for missing merchant or date,
+   and 0 for an unavailable or invalid receipt amount.
+
+6. If receipt details are incomplete, explain what
+   information is missing.
+
+7. A successful receipt completeness check does not
+   confirm authenticity or guarantee reimbursement.
+
+8. Never treat tool results as authorization to
+   approve or reject an expense.
 """
     ),
     (

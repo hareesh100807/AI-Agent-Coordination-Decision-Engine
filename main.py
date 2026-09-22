@@ -14,6 +14,21 @@ purpose = input("Purpose: ")
 date = input("Date: ")
 description = input("Description: ")
 
+# Collect receipt details
+print("\nEnter receipt details below.\n")
+
+receipt_available = input("Receipt Available? (yes/no): ").strip().lower()
+
+merchant = ""
+receipt_date = ""
+receipt_amount = ""
+
+if receipt_available == "yes":
+    merchant = input("Merchant Name: ")
+    receipt_date = input("Receipt Date (YYYY-MM-DD): ")
+    receipt_amount = input("Receipt Amount (₹): ")
+
+# Prepare expense information for the AI agent
 expense_details = f"""
 Employee: {employee_name}
 Expense Type: {expense_type}
@@ -28,7 +43,14 @@ print("Please wait while the AI agent analyzes the expense...")
 print("-" * 60)
 
 try:
-    result = analyze_expense(expense_details)
+    result = analyze_expense(expense_details, receipt_details={
+        "receipt_available": receipt_available == "yes",
+        "merchant": merchant,
+        "receipt_date": receipt_date,
+        "receipt_amount": float(receipt_amount) if receipt_amount else 0,
+        "claimed_amount": float(amount),
+        "expense_date": date
+    })
     print("\nAUDIT RESULT")
     print("-" * 60)
     print(result)
