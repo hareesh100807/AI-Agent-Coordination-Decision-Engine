@@ -1,0 +1,539 @@
+/* Enterprise Finance Dashboard Styling - Fully Responsive & Fixed Constant Sidebar */
+
+:root {
+    --sidebar-bg: #0f172a;
+    --sidebar-hover: #1e293b;
+    --sidebar-active: #2563eb;
+    --sidebar-text: #94a3b8;
+    --sidebar-text-active: #ffffff;
+    --main-bg: #f8fafc;
+    --card-bg: #ffffff;
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --border-color: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --sidebar-width: 270px;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--main-bg);
+    color: var(--text-primary);
+}
+
+/* App Wrapper Layout */
+.dashboard-wrapper {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 100%;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Backdrop Overlay for Mobile/Tablet Sidebar Drawer */
+.sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(15, 23, 42, 0.65);
+    z-index: 1040;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+.sidebar-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Sidebar Styles - Fixed Constant Position */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    height: 100dvh;
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-right: 1px solid #1e293b;
+    z-index: 1030;
+    overflow: hidden;
+}
+
+.sidebar-header {
+    padding: 1.25rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #1e293b;
+    min-height: 68px;
+    flex-shrink: 0;
+}
+
+.brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+}
+
+.brand-logo i {
+    font-size: 1.35rem;
+}
+
+.badge-env {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.45rem;
+}
+
+.close-sidebar-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    transition: color 0.15s ease;
+}
+
+.close-sidebar-btn:hover {
+    color: #ffffff;
+}
+
+.sidebar-menu {
+    flex-grow: 1;
+    padding: 1rem 0.75rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #334155 transparent;
+}
+
+.sidebar-menu::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+    background-color: #334155;
+    border-radius: 4px;
+}
+
+.menu-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    padding: 0 0.75rem 0.5rem 0.75rem;
+}
+
+.sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.85rem;
+    color: var(--sidebar-text);
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    margin-bottom: 0.2rem;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar .nav-link i {
+    font-size: 1.05rem;
+}
+
+.sidebar .nav-link:hover {
+    color: #ffffff;
+    background-color: var(--sidebar-hover);
+}
+
+.sidebar .nav-link.active {
+    background-color: var(--sidebar-active);
+    color: var(--sidebar-text-active);
+}
+
+.sidebar .nav-link.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.system-status-card {
+    background-color: rgba(15, 23, 42, 0.6);
+    border: 1px solid #1e293b;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.sidebar-footer {
+    padding: 0.85rem 1rem;
+    border-top: 1px solid #1e293b;
+    background-color: rgba(15, 23, 42, 0.4);
+    min-height: 64px;
+    flex-shrink: 0;
+}
+
+.avatar-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #1e293b;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+}
+
+.user-name {
+    font-size: 0.825rem;
+    font-weight: 600;
+    color: #f1f5f9;
+    line-height: 1.2;
+}
+
+.user-role {
+    font-size: 0.72rem;
+}
+
+/* Main Content Area - Offset by fixed sidebar width */
+.main-content {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background-color: var(--main-bg);
+}
+
+.top-navbar {
+    min-height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 99;
+}
+
+.page-header-title {
+    max-width: 100%;
+}
+
+.page-container {
+    flex-grow: 1;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Metric Cards */
+.metric-card {
+    border-radius: 0.75rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border: 1px solid var(--border-color) !important;
+    background-color: var(--card-bg);
+}
+
+.metric-card:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06) !important;
+}
+
+.metric-icon-box {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+}
+
+.metric-value {
+    font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+}
+
+/* Expense Table & Scrolling Container */
+.expense-table-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.expense-table-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.expense-table-container::-webkit-scrollbar-track {
+    background: #f8fafc;
+}
+
+.expense-table-container::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 4px;
+}
+
+.expense-table-container::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+}
+
+.expense-table {
+    min-width: 620px;
+    width: 100%;
+}
+
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+}
+
+.table th {
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    border-top: none;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.border-dashed {
+    border: 2px dashed #cbd5e1 !important;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* Form Controls & Submit Expense Styles */
+.form-section {
+    position: relative;
+}
+
+.form-label {
+    margin-bottom: 0.35rem;
+}
+
+.form-control, .form-select {
+    border-color: #cbd5e1;
+    font-size: 0.9rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.5rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.15);
+}
+
+.input-group-text {
+    border-color: #cbd5e1;
+    border-radius: 0.5rem;
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Upload Dropzone & File Preview */
+.upload-dropzone {
+    border: 2px dashed #cbd5e1;
+    background-color: #f8fafc;
+    transition: all 0.2s ease;
+}
+
+.upload-dropzone:hover {
+    border-color: var(--primary-color);
+    background-color: #eff6ff;
+}
+
+.upload-icon-box {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.file-preview-card {
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.pdf-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 0.375rem;
+}
+
+/* Audit Result Styles */
+.report-icon-box {
+    width: 42px;
+    height: 42px;
+}
+
+.audit-response-box {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    font-size: 0.925rem;
+}
+
+.audit-text-content {
+    color: #1e293b;
+    word-break: break-word;
+}
+
+/* Modal Styling */
+.placeholder-icon-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ==========================================================================
+   RESPONSIVE BREAKPOINTS & MEDIA QUERIES
+   ========================================================================== */
+
+/* Tablet & Mobile Breakpoint (<1200px): Off-canvas Sidebar Drawer */
+@media (max-width: 1199.98px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        transform: translateX(-100%);
+        width: min(280px, 85vw);
+        height: 100vh;
+        height: 100dvh;
+        box-shadow: none;
+        z-index: 1050;
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.45);
+    }
+
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+}
+
+/* Mobile Screens (<768px) */
+@media (max-width: 767.98px) {
+    .top-navbar {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .page-header-title h5 {
+        font-size: 1.05rem;
+    }
+
+    .metric-card .card-body {
+        padding: 0.85rem !important;
+    }
+
+    .metric-icon-box {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+
+    .metric-value {
+        font-size: 1.35rem;
+    }
+
+    .empty-state-wrapper {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+
+    .upload-dropzone {
+        padding: 1rem !important;
+    }
+}
+
+/* Extra Small Mobile (<=390px and down to 320px) */
+@media (max-width: 390px) {
+    .brand-logo {
+        font-size: 1rem;
+    }
+
+    .page-header-title h5 {
+        font-size: 0.95rem;
+    }
+
+    .btn-primary.btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .metric-value {
+        font-size: 1.2rem;
+    }
+
+    .metric-label {
+        font-size: 0.7rem !important;
+    }
+
+    .sidebar {
+        width: min(260px, 90vw);
+    }
+
+    .file-preview-card .d-flex {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+}
+
+/* Print Media Styles */
+@media print {
+    .sidebar, .top-navbar, .sidebar-backdrop, .btn, .breadcrumb {
+        display: none !important;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .card {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+    }
+}

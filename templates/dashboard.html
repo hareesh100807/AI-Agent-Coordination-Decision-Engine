@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Enterprise Expense Intelligence & Audit{% endblock %}
+{% block page_title %}Finance Executive Overview{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+
+    <!-- Information Banner -->
+    <div class="alert alert-light border shadow-sm mb-4 p-3 rounded-3" role="alert">
+        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2">
+            <div class="d-flex align-items-start align-items-sm-center">
+                <div class="alert-icon-box bg-primary-subtle text-primary me-2 me-sm-3 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
+                    <i class="bi bi-info-circle-fill fs-5"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="fw-semibold text-dark text-break">Initial UI Milestone — Ready for Database Connection</div>
+                    <div class="text-muted small text-break">No active database records detected. Displaying default zero-state metrics and empty data views.</div>
+                </div>
+            </div>
+            <div class="mt-2 mt-md-0 flex-shrink-0 align-self-start align-self-md-center">
+                <span class="badge bg-secondary-subtle text-secondary border px-2 py-1">Empty State Active</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Executive KPI Metric Cards (Zero State) -->
+    <!-- Grid: 4 cols on Desktop (>=1200px), 2 cols on Tablet/Large Mobile (576px-1199px), 1 col on XS (<576px) -->
+    <div class="row g-3 mb-4">
+        <!-- KPI 1: Total Expenses Claimed -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card shadow-sm border-0 h-100">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="metric-label text-muted text-uppercase fw-semibold" style="font-size: 0.75rem;">Total Claimed</span>
+                        <div class="metric-icon-box bg-primary-subtle text-primary rounded-3 flex-shrink-0">
+                            <i class="bi bi-currency-rupee"></i>
+                        </div>
+                    </div>
+                    <div class="metric-value fw-bold text-dark mb-1 text-truncate">
+                        ₹{{ "{:,.2f}".format(kpi_data.total_claimed) }}
+                    </div>
+                    <div class="metric-subtext text-muted small d-flex align-items-center text-truncate">
+                        <i class="bi bi-dash me-1"></i> 0 claims submitted
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 2: Pending Audits -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card shadow-sm border-0 h-100">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="metric-label text-muted text-uppercase fw-semibold" style="font-size: 0.75rem;">Pending Audits</span>
+                        <div class="metric-icon-box bg-warning-subtle text-warning rounded-3 flex-shrink-0">
+                            <i class="bi bi-hourglass-split"></i>
+                        </div>
+                    </div>
+                    <div class="metric-value fw-bold text-dark mb-1 text-truncate">
+                        {{ kpi_data.pending_audits }}
+                    </div>
+                    <div class="metric-subtext text-muted small d-flex align-items-center text-truncate">
+                        <i class="bi bi-dash me-1"></i> 0 claims awaiting review
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 3: High-Risk Flagged -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card shadow-sm border-0 h-100">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="metric-label text-muted text-uppercase fw-semibold" style="font-size: 0.75rem;">Flagged Violations</span>
+                        <div class="metric-icon-box bg-danger-subtle text-danger rounded-3 flex-shrink-0">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    <div class="metric-value fw-bold text-dark mb-1 text-truncate">
+                        {{ kpi_data.flagged_claims }}
+                    </div>
+                    <div class="metric-subtext text-muted small d-flex align-items-center text-truncate">
+                        <i class="bi bi-dash me-1"></i> 0 policy breaches detected
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI 4: Compliance Rate -->
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card metric-card shadow-sm border-0 h-100">
+                <div class="card-body p-3 d-flex flex-column justify-content-between">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="metric-label text-muted text-uppercase fw-semibold" style="font-size: 0.75rem;">Compliance Rate</span>
+                        <div class="metric-icon-box bg-success-subtle text-success rounded-3 flex-shrink-0">
+                            <i class="bi bi-patch-check"></i>
+                        </div>
+                    </div>
+                    <div class="metric-value fw-bold text-dark mb-1 text-truncate">
+                        {{ "{:.1f}%".format(kpi_data.compliance_rate) if kpi_data.compliance_rate > 0 else "--" }}
+                    </div>
+                    <div class="metric-subtext text-muted small d-flex align-items-center text-truncate">
+                        <i class="bi bi-dash me-1"></i> Insufficient data
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Section: Recent Expenses & AI Audit Queue -->
+    <div class="row g-4">
+        <!-- Expenses Table Container (Col 8 on Desktop, Col 12 on Tablet & Mobile) -->
+        <div class="col-12 col-xl-8">
+            <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="min-w-0">
+                        <h6 class="card-title fw-bold mb-0 text-dark text-truncate">Recent Expense Claims</h6>
+                        <span class="text-muted small text-truncate d-block">Live submission stream and audit status tracking</span>
+                    </div>
+                    <span class="badge bg-light text-muted border flex-shrink-0">0 records</span>
+                </div>
+                <div class="card-body p-0">
+                    <!-- Responsive Table Wrapper with dedicated scrollbar -->
+                    <div class="table-responsive expense-table-container">
+                        <table class="table table-hover align-middle mb-0 expense-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" class="ps-3 py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Claim ID</th>
+                                    <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Employee</th>
+                                    <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Category</th>
+                                    <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Date</th>
+                                    <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Amount</th>
+                                    <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Receipt</th>
+                                    <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Status</th>
+                                    <th scope="col" class="pe-3 py-3 text-end text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if expenses and expenses|length > 0 %}
+                                    {% for expense in expenses %}
+                                    <tr>
+                                        <td class="ps-3 fw-semibold text-dark text-nowrap">{{ expense.id }}</td>
+                                        <td class="text-nowrap">{{ expense.employee }}</td>
+                                        <td class="text-nowrap"><span class="badge bg-light text-dark border">{{ expense.category }}</span></td>
+                                        <td class="text-muted small text-nowrap">{{ expense.date }}</td>
+                                        <td class="fw-semibold text-nowrap">₹{{ "{:,.2f}".format(expense.amount) }}</td>
+                                        <td class="text-nowrap">
+                                            {% if expense.receipt_available %}
+                                                <span class="badge bg-success-subtle text-success">Attached</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary-subtle text-secondary">Missing</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-nowrap">
+                                            <span class="badge bg-info-subtle text-info">{{ expense.status }}</span>
+                                        </td>
+                                        <td class="pe-3 text-end text-nowrap">
+                                            <button class="btn btn-sm btn-outline-primary" disabled>Audit</button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <!-- Empty State Row -->
+                                    <tr>
+                                        <td colspan="8" class="text-center py-4 py-sm-5 px-3">
+                                            <div class="empty-state-wrapper py-2 py-sm-3 mx-auto" style="max-width: 420px;">
+                                                <div class="empty-state-icon mb-3 text-muted opacity-50">
+                                                    <i class="bi bi-inbox display-4"></i>
+                                                </div>
+                                                <h6 class="fw-bold text-dark mb-1">No Expense Records Available</h6>
+                                                <p class="text-muted small mb-3">
+                                                    The database currently contains no submitted claims. When expense claims are recorded or synchronized via MySQL, they will be listed here for AI review.
+                                                </p>
+                                                <div class="d-inline-flex align-items-center">
+                                                    <span class="badge bg-light text-muted border px-3 py-2 text-wrap text-break">
+                                                        <i class="bi bi-database me-1"></i> Awaiting MySQL Database Connection
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar / AI Audit Findings & Policy Overview Panel (Col 4 on Desktop, Col 12 on Tablet & Mobile) -->
+        <div class="col-12 col-xl-4">
+            <!-- AI Audit Summary Card -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="card-title fw-bold mb-0 text-dark">
+                        <i class="bi bi-robot text-primary me-2"></i>AI Audit Intelligence Panel
+                    </h6>
+                </div>
+                <div class="card-body p-3 p-sm-4 text-center">
+                    <div class="placeholder-visual-box p-3 p-sm-4 rounded-3 bg-light border border-dashed mb-3">
+                        <i class="bi bi-shield-lock text-muted display-6 d-block mb-2"></i>
+                        <h6 class="fw-semibold text-secondary mb-1">Audit Stream Inactive</h6>
+                        <p class="text-muted small mb-0">
+                            No active audit findings to report. Real-time Gemini agent observations will display here upon claim ingestion.
+                        </p>
+                    </div>
+                    <div class="d-grid">
+                        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#runAuditModal">
+                            <i class="bi bi-play-circle me-1"></i> Check Audit Queue
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Policy Rules Reference Card -->
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <h6 class="card-title fw-bold mb-0 text-dark">
+                        <i class="bi bi-journal-bookmark text-primary me-2"></i>Expense Policy Reference
+                    </h6>
+                    <span class="badge bg-info-subtle text-info small">Agent Tools</span>
+                </div>
+                <div class="card-body p-3">
+                    <p class="text-muted small mb-3">
+                        Configured policy thresholds currently loaded into LangChain policy tools:
+                    </p>
+                    <ul class="list-group list-group-flush small">
+                        <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-1 px-0 py-2">
+                            <div class="min-w-0">
+                                <span class="fw-medium text-dark">Domestic Travel</span>
+                                <div class="text-muted" style="font-size: 0.75rem;">Receipt required &bull; Approval above limit</div>
+                            </div>
+                            <span class="badge bg-light text-dark border flex-shrink-0">Limit: ₹3,500</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-1 px-0 py-2">
+                            <div class="min-w-0">
+                                <span class="fw-medium text-dark">Business Meals</span>
+                                <div class="text-muted" style="font-size: 0.75rem;">Receipt required &bull; Approval above limit</div>
+                            </div>
+                            <span class="badge bg-light text-dark border flex-shrink-0">Limit: ₹1,500</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-1 px-0 py-2">
+                            <div class="min-w-0">
+                                <span class="fw-medium text-dark">Hotel Accommodation</span>
+                                <div class="text-muted" style="font-size: 0.75rem;">Receipt required &bull; Approval above limit</div>
+                            </div>
+                            <span class="badge bg-light text-dark border flex-shrink-0">Limit: ₹5,000</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

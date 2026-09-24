@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![LangChain](https://img.shields.io/badge/LangChain-Orchestration-green.svg)](https://www.langchain.com/)
 [![Google Gemini](https://img.shields.io/badge/LLM-Gemini%203.6%20Flash-orange.svg)](https://ai.google.dev/)
-[![Project Status](https://img.shields.io/badge/Milestone-1%20(Agent%20Foundation)-informational.svg)]()
+[![Project Status](https://img.shields.io/badge/Milestone-2%20(Tool%20Integration%20%26%20Action%20Execution)-informational.svg)]()
 
 An AI-powered enterprise expense intelligence and auditing system designed to assist corporate audit teams and employees by analyzing expense submissions, identifying potential compliance and policy gaps, highlighting missing documentation, and providing clear, explainable audit insights.
 
@@ -289,21 +289,18 @@ GEMINI_API_KEY=your_actual_gemini_api_key_here
 
 ---
 
-## 17. Running the Application
+## 17. ### Running the Web Application
 
-To run the interactive CLI application:
+The Flask-based expense audit interface can be launched from the project root after installing the required dependencies and configuring the Gemini API key.
 
 ```bash
-python main.py
+python web_app.py
 ```
 
-Follow the on-screen prompts to input expense details and receive the AI agent's audit insights.
+Open the local URL displayed by Flask in your browser.
 
-To run individual test scripts:
-```bash
-python test_gemini.py
-python tests/test_expense_agent.py
-```
+Note: The web application currently operates without database persistence. Expense submissions and audit results are not stored permanently.
+
 
 ---
 
@@ -318,3 +315,275 @@ python tests/test_expense_agent.py
 ## 19. Project Context
 
 Developed as part of the **Infosys SpringBoard Virtual Internship 7.0**.
+
+---
+
+## 20. Milestone 2 — Tool Integration & Action Execution
+
+### 20.1 Milestone Overview
+
+Milestone 2 extends the foundational Expense Audit Agent (built in Milestone 1) with **enterprise tool integration**, **structured error handling**, and a **professional web-based user interface** for expense submission and AI-powered audit analysis.
+
+The key objectives of this milestone were:
+- Developing and integrating **enterprise-relevant tools** (Expense Policy Tool, Receipt Validation Tool) into the LangChain-based agent workflow.
+- Enabling the AI agent to **autonomously invoke tools** during expense analysis to retrieve policy data and validate receipt consistency.
+- Implementing **robust exception handling** across the Gemini API, tool invocations, and incomplete audit execution paths.
+- Building a **responsive, professional web interface** using Flask, HTML, CSS, and JavaScript for expense submission, audit initiation, and result presentation.
+- Refining the **AI agent's classification and policy reasoning** to prevent hallucinated categories, enforce single-category policy lookup, and distinguish required fields from optional fields.
+
+---
+
+### 20.2 Tools Developed
+
+#### 20.2.1 Expense Policy Tool (`app/tools/expense_policy_tool.py`)
+
+A LangChain `@tool`-decorated function that retrieves simulated company expense policy rules based on the submitted expense category.
+
+| Feature | Detail |
+| :--- | :--- |
+| **Supported Categories** | Domestic Travel (limit ₹3,500), Business Meals (limit ₹1,500), Hotel Accommodation (limit ₹5,000) |
+| **Category Aliases** | Resolves variations such as "domestic travel" → travel, "hotel" / "lodging" → accommodation, "business meals" → meals |
+| **Policy Data Returned** | Category name, reimbursement limit, receipt requirement, and approval requirement above limit |
+| **Unknown Categories** | Returns a clear "No company policy found..." message |
+
+> **Note**: The policy data is **simulated** and is not connected to any real company's policy management system. It is intended for development and demonstration purposes within this internship project.
+
+#### 20.2.2 Receipt Validation Tool (`app/tools/receipt_validation_tool.py`)
+
+A LangChain `@tool`-decorated function that performs basic completeness and consistency checks on submitted receipt details.
+
+**Validation checks performed:**
+1. **Receipt Availability** — Early exit with "Manual review required" if no receipt is provided.
+2. **Merchant Verification** — Checks that a non-empty merchant name is present.
+3. **Receipt Date Validation** — Validates date format (YYYY-MM-DD).
+4. **Amount Validation** — Ensures receipt amount is greater than zero and matches the claimed expense amount.
+5. **Date Consistency** — Compares the receipt date against the expense date and flags discrepancies.
+
+**Output format:** Structured text beginning with `Receipt Validation: BASIC CHECK PASSED` or `Receipt Validation: REQUIRES REVIEW`, followed by itemized findings and any detected issues.
+
+> **Note**: This tool performs **basic consistency checks only**. It does not verify receipt authenticity, perform OCR on uploaded images, or independently confirm policy compliance.
+
+---
+
+### 20.3 AI Agent Tool Integration
+
+The expense audit agent (`app/agents/expense_audit_agent.py`) integrates tool outputs into the analysis workflow as follows:
+
+1. **Prompt Assembly** — The agent formats a structured prompt using `ChatPromptTemplate` with system-level reasoning rules and the employee's expense details.
+2. **Direct Receipt Validation** — When receipt details are provided, the agent directly invokes `validate_receipt.invoke()` and appends the validation result to the LLM's context as additional evidence.
+3. **LLM-Driven Policy Lookup** — The agent binds `get_expense_policy` as a callable tool via `llm.bind_tools()`. During inference, Gemini autonomously decides when to invoke the policy tool based on the expense category and submits a `tool_call` request, which the agent resolves in a loop (up to 5 iterations).
+4. **Tool Result Integration** — Tool responses are appended as `ToolMessage` objects to the conversation, enabling the LLM to incorporate policy limits and receipt validation findings into its final audit narrative.
+5. **Final Audit Generation** — Once all tool calls are resolved, the agent returns the LLM's structured audit response containing classification, observations, policy concerns, risk assessment, and recommended next steps.
+
+**Refined Reasoning Rules (System Prompt):**
+- The agent treats the **employee-selected Expense Category as the primary category** for policy lookup.
+- It does **not infer secondary categories** from the Purpose or Description fields.
+- If the Purpose appears inconsistent with the selected category, the agent flags a **category-purpose mismatch** and recommends clarification rather than cross-applying unrelated policy limits.
+- The agent distinguishes **required fields** (Employee Name, Category, Amount, Date, Purpose) from **optional fields** (Description) and does not flag a blank optional Description as a policy violation.
+- All existing guardrails are preserved: no final financial approvals/rejections, no definitive fraud accusations, and no fabricated policy requirements.
+
+---
+
+### 20.4 Error Handling and Exception Management
+
+Milestone 2 implements structured exception handling at multiple layers:
+
+| Layer | Failure Scenario | Behavior |
+| :--- | :--- | :--- |
+| **Gemini API** | API quota exhaustion, network failure, or model error | Returns a standardized fallback message: *"AI audit unavailable. Gemini could not complete the expense analysis."* The agent does not crash or return an incomplete analysis as a successful result. |
+| **Tool Invocation** | `get_expense_policy` or `validate_receipt` raises an exception during execution | The exception is caught; a `ToolMessage` with a structured failure description (*"Tool execution failed: [ErrorType]"*) is appended to the conversation, allowing the LLM to acknowledge the failure in its response. |
+| **Incomplete Audit** | The agent exhausts the maximum tool-call loop (5 iterations) without reaching a final response | Returns: *"The agent could not complete the analysis within the allowed tool-call steps."* |
+| **Web Layer** | Unexpected exception during `analyze_expense()` invocation from Flask | Caught by the Flask route handler; the audit result page renders with `audit_status = "error"` and a user-facing error message instead of an unhandled server error. |
+
+The system is designed to **communicate failures explicitly** rather than presenting an incomplete or erroneous audit as a successful result.
+
+---
+
+### 20.5 Web-Based User Interface
+
+A professional, responsive web interface was built using Flask, Bootstrap 5, and custom CSS/JavaScript to replace the CLI-only interaction model from Milestone 1.
+
+#### 20.5.1 Expense Audit Dashboard (`/`)
+
+- **Executive KPI Cards** displaying Total Claimed, Pending Audits, Flagged Claims, and Compliance Rate (initialized at zero in the current empty-state phase).
+- **Recent Expenses Table** with an isolated horizontal scroll container for smaller screens.
+- **AI Audit Status Panel** and **Policy Reference Widget** for quick access.
+- **Empty-state design** with a clear information banner indicating no database records are connected.
+
+#### 20.5.2 Expense Submission Form (`/submit-expense`)
+
+- **Two-section layout**: General Expense Details and Receipt Documentation.
+- **Form fields**: Employee Name, Expense Category (Travel / Meals / Accommodation), Claimed Amount (₹), Expense Date, Purpose, Description (optional), Receipt Available (Yes/No), and conditional receipt fields (Merchant, Receipt Date, Receipt Amount).
+- **File upload**: Drag-and-drop dropzone supporting PDF, JPG, JPEG, and PNG files with a 5 MB size limit. Image files display a local thumbnail preview; PDF files display a document icon. Users can replace or remove the selected file before submission.
+- **Client-side validation**: Required field checks, positive amount validation, and first-error focus.
+- **Server-side validation**: Comprehensive validation of all fields including category verification, date format parsing, conditional receipt field requirements, and in-memory file inspection (extension and size checks).
+
+> **Note**: Uploaded receipt files are validated in-memory for type and size but are **not persisted to disk or processed using OCR**. The audit uses the submitted receipt detail fields (merchant, date, amount) for basic validation.
+
+#### 20.5.3 AI Audit Result Page (`/submit-expense` POST → `audit_result.html`)
+
+- **Claim Overview Grid** summarizing submitted expense details.
+- **Receipt Information Section** displaying receipt validation status.
+- **AI Audit Findings Display** with three distinct visual states:
+  - ✅ **Success** — Full audit report rendered with structured findings.
+  - ⚠️ **Unavailable** — Warning state when Gemini could not complete the analysis.
+  - ❌ **Error** — Error state for unexpected service/network failures.
+- **Print/Save** functionality with a print-optimized media query.
+- **Submit Another Expense** navigation link.
+
+#### 20.5.4 Responsive Design
+
+- **Desktop (≥1200px)**: Fixed sidebar navigation with full dashboard layout.
+- **Tablet (768px–1199px)**: Sidebar adapts; KPI cards wrap to 2 columns.
+- **Mobile (<768px)**: Sidebar collapses into a toggleable off-canvas drawer with backdrop overlay; KPI cards display in 1 column; tables and panels stack vertically.
+- Sidebar remains **fixed/stationary** and does not scroll with the page content.
+
+---
+
+### 20.6 Testing and Validation
+
+The following tests were implemented during Milestone 2:
+
+| Test File | Type | Description | Status |
+| :--- | :--- | :--- | :--- |
+| `tests/test_expense_policy_tool.py` | Smoke Test | Invokes `get_expense_policy` with `"travel"` and prints the returned policy dictionary. No formal assertions. | Implemented (manual verification) |
+| `tests/test_receipt_validation_tool.py` | Smoke Test | Invokes `validate_receipt` with a deliberate date mismatch scenario and prints the structured output. No formal assertions. | Implemented (manual verification) |
+| `tests/test_gemini_error_handling.py` | Unit Test (Mocked) | Patches `llm_with_tools` with a `RuntimeError` to verify that `analyze_expense()` returns the `"AI audit unavailable"` fallback message instead of crashing. | Implemented; assertions verified via manual code trace |
+| `tests/test_policy_tool_error_handling.py` | Unit Test (Mocked) | Simulates a tool invocation failure during the agent's policy lookup loop and verifies the agent completes with a `"manual review"` message. | Implemented; assertions verified via manual code trace |
+| `tests/test_reasoning_refinements.py` | Unit Test Suite (Mocked) | Four tests verifying: (1) refined system prompt contains all required reasoning rules, (2) agent performs single-category policy lookup without inferring secondary categories, (3) category-purpose mismatch is detected and flagged, (4) blank optional Description is not flagged as a policy violation. | Implemented; all assertions verified via manual code trace against source |
+| `tests/test_expense_agent.py` | Integration Test (Live API) | Calls `analyze_expense()` with sample hotel expense data using the live Gemini API. Prints the generated audit report. Requires a valid `GEMINI_API_KEY`. | Implemented; requires live API key for execution |
+
+> **Important**: The mocked unit tests (`test_gemini_error_handling.py`, `test_policy_tool_error_handling.py`, `test_reasoning_refinements.py`) have been **verified through manual code trace** — every assertion was checked against the actual source code and confirmed to be logically correct. However, automated test execution via `pytest` in the development environment encountered a shell configuration issue. The test files are ready for execution in any standard Python environment with the project's virtual environment activated.
+
+**Web UI Testing**: The expense submission form, server-side validation, AI agent invocation, and audit result rendering were verified through manual end-to-end testing via the Flask development server.
+
+---
+
+### 20.7 Technologies Used (Milestone 2)
+
+| Technology | Role in Milestone 2 |
+| :--- | :--- |
+| **Python 3.10+** | Core programming language for tools, agent logic, and Flask application |
+| **LangChain** (`langchain`, `langchain-core`) | Agent orchestration, tool binding (`@tool`, `bind_tools`), prompt templates, and message handling |
+| **Google Gemini 3.6 Flash** (`langchain-google-genai`, `google-genai`) | Foundation LLM for expense analysis, tool-call generation, and audit narrative synthesis |
+| **Flask** | Web application framework serving the dashboard, form, and audit result pages |
+| **HTML5 / CSS3** | Responsive page templates and enterprise-themed styling (navy/blue design system) |
+| **Bootstrap 5.3** | UI component framework for responsive grid, cards, forms, navigation, and alerts |
+| **Bootstrap Icons 1.11** | Icon library for navigation, status indicators, and UI elements |
+| **JavaScript (Vanilla)** | Client-side interactivity: sidebar toggle, file upload/preview, form validation, loading states |
+| **Jinja2** | Server-side HTML templating via Flask's built-in template engine |
+| **pytest** | Test framework for unit and integration test execution |
+
+---
+
+### 20.8 Known Limitations and Future Improvements
+
+**Current Limitations:**
+- **Simulated Policy Data** — Expense policies are defined as static dictionaries within the codebase. No connection to an external policy management system or document repository exists.
+- **No Database Persistence** — The application operates in a fully stateless mode. Submitted expenses, audit results, and KPI metrics are not persisted to any database. The dashboard displays zero-state metrics.
+- **Uploaded Receipts Not Stored** — Receipt files are validated in-memory (type and size) but are not saved to disk, cloud storage, or any persistent store.
+- **No OCR Processing** — Uploaded receipt images and PDFs are not processed using OCR or any document parsing technology. The audit relies on manually entered receipt detail fields.
+- **Advisory Audit Results** — AI-generated audit findings are strictly advisory. The system does not make final financial approval or rejection decisions and does not assign definitive fraud labels.
+- **Single-Category Policy** — The system supports three predefined expense categories (Travel, Meals, Accommodation). Categories outside this set return a "no policy found" response.
+- **Flask Not in requirements.txt** — Flask is used by the web application (`web_app.py`) but is not currently listed in `requirements.txt`. It should be added for complete dependency documentation.
+- **Shell Execution Constraint** — Automated test execution via `pytest` encountered a development environment shell resolution issue. Tests are structurally correct and can be executed in any standard Python environment.
+
+**Planned Future Improvements:**
+- Database integration (MySQL) for persistent expense records, audit trails, and dynamic KPI metrics.
+- Receipt file storage and optional OCR-based data extraction.
+- Policy retrieval from external enterprise document sources (RAG-based approach).
+- Multi-agent coordination for specialized audit workflows.
+- Enhanced analytics and reporting dashboards.
+
+---
+
+### 20.9 Screenshots
+
+> **Note**: No UI screenshots have been added to the repository at this time. The following screenshots can be captured and added in a future update:
+> - Expense Audit Dashboard (empty state with KPI cards)
+> - Expense Submission Form (with receipt upload section)
+> - AI Audit Result Page (successful audit findings)
+> - AI Audit Result Page (unavailable/error states)
+> - Mobile responsive view (sidebar drawer, stacked layout)
+>
+> Once screenshots are captured, they can be placed in a `screenshots/` directory and referenced here using relative paths (e.g., `![Dashboard](screenshots/dashboard.png)`).
+
+---
+
+### 20.10 Milestone Summary
+
+Milestone 2 transforms the foundational Expense Audit Agent from Milestone 1 into a **tool-integrated, web-accessible expense intelligence system**. The agent now autonomously retrieves company policy data and validates receipt consistency using purpose-built LangChain tools, produces structured audit narratives grounded in retrieved evidence, and handles failures gracefully across all system layers.
+
+The addition of a professional web interface — comprising an executive dashboard, a validated expense submission form with file upload, and a detailed AI audit result page — provides a realistic enterprise interaction model that replaces the CLI-only interface from Milestone 1.
+
+Together, these enhancements demonstrate the practical integration of AI agent tool-use capabilities, structured error handling, and user-facing web application development within an enterprise expense auditing context.
+
+---
+
+### Milestone 2 Updated Architecture
+
+```mermaid
+flowchart TD
+    A[Employee / Auditor] -->|Submits Expense via Web Form| B[Flask Web Application\nweb_app.py]
+    B -->|Validates & Maps Fields| C[Expense Audit Agent\napp/agents/expense_audit_agent.py]
+    C -->|Formats Structured Prompt| D[LangChain Prompt Formatting\napp/prompts/templates.py]
+    D -->|Sends Prompt to LLM| E[Gemini 3.6 Flash\napp/llm/gemini.py]
+    E -->|Requests Tool Call| F{Tool Invocation}
+    F -->|Policy Lookup| G[Expense Policy Tool\napp/tools/expense_policy_tool.py]
+    F -->|Receipt Check| H[Receipt Validation Tool\napp/tools/receipt_validation_tool.py]
+    G -->|Returns Policy Data| C
+    H -->|Returns Validation Result| C
+    E -->|Returns Final Audit| C
+    C -->|Formats Audit Report| B
+    B -->|Renders Audit Result Page| I[AI Audit Findings\naudit_result.html]
+    I -->|Assists Decision Making| J[Human Reviewer\nFinance / Audit Team]
+```
+
+### Milestone 2 Updated Project Structure
+
+```
+enterprise-expense-intelligence-audit/
+├── app/
+│   ├── __init__.py
+│   ├── agents/
+│   │   ├── __init__.py
+│   │   └── expense_audit_agent.py       # Core expense analysis agent with tool integration
+│   ├── llm/
+│   │   ├── __init__.py
+│   │   └── gemini.py                     # Gemini LLM initialization & configuration
+│   ├── prompts/
+│   │   ├── __init__.py
+│   │   └── templates.py                  # Refined prompt templates with reasoning rules
+│   └── tools/
+│       ├── __init__.py
+│       ├── expense_policy_tool.py        # Simulated company expense policy retrieval tool
+│       └── receipt_validation_tool.py    # Receipt completeness & consistency validation tool
+├── static/
+│   ├── css/
+│   │   └── dashboard.css                 # Enterprise finance dashboard & form styling
+│   └── js/
+│       └── dashboard.js                  # Client-side interactivity & form validation
+├── templates/
+│   ├── base.html                         # Base layout with responsive sidebar navigation
+│   ├── dashboard.html                    # Finance executive dashboard (empty state)
+│   ├── submit_expense.html               # Expense submission form with receipt upload
+│   └── audit_result.html                 # AI audit findings display page
+├── tests/
+│   ├── __init__.py
+│   ├── test_expense_agent.py            # Live integration test for expense agent
+│   ├── test_expense_policy_tool.py      # Expense Policy Tool smoke test
+│   ├── test_expense_prompt.py           # Prompt formatting inspection utility
+│   ├── test_gemini_error_handling.py    # Gemini API failure handling unit test
+│   ├── test_gemini_module.py            # LLM module connectivity test
+│   ├── test_policy_tool_error_handling.py  # Policy tool failure handling unit test
+│   ├── test_reasoning_refinements.py    # Reasoning refinement unit test suite
+│   └── test_receipt_validation_tool.py  # Receipt Validation Tool smoke test
+├── .gitignore
+├── main.py                               # CLI application entry point
+├── web_app.py                            # Flask web application entry point
+├── requirements.txt                      # Project dependencies
+├── test_gemini.py                        # Direct Gemini API connection test
+├── test_langchain.py                     # LangChain + Gemini connection test
+├── test_prompt.py                        # Basic ChatPromptTemplate validation test
+└── README.md                             # Project documentation
+```

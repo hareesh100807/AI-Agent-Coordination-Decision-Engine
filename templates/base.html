@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>{% block title %}Enterprise Expense Intelligence & Audit{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Dashboard CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
+
+    <div class="dashboard-wrapper">
+        <!-- Sidebar Navigation Drawer -->
+        <aside class="sidebar" id="sidebar" aria-label="Sidebar Navigation">
+            <div class="sidebar-header">
+                <a href="{{ url_for('dashboard') }}" class="brand-logo text-decoration-none">
+                    <i class="bi bi-shield-check text-primary"></i>
+                    <span class="brand-title">ExpenseIntel</span>
+                </a>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle badge-env">v1.0 UI</span>
+                    <button class="btn btn-sm text-secondary d-xl-none p-1 close-sidebar-btn" id="sidebarCloseBtn" aria-label="Close sidebar">
+                        <i class="bi bi-x-lg fs-6"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-menu">
+                <div class="menu-label">Main Navigation</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-grid-1x2-fill"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'submit_expense' %}active{% endif %}" href="{{ url_for('submit_expense') }}">
+                            <i class="bi bi-file-earmark-plus"></i>
+                            <span>Submit Expense</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">
+                            <i class="bi bi-robot"></i>
+                            <span>AI Audit Logs</span>
+                            <span class="badge bg-light text-muted ms-auto">Upcoming</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">
+                            <i class="bi bi-journal-text"></i>
+                            <span>Policy Rules</span>
+                            <span class="badge bg-light text-muted ms-auto">Upcoming</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            <span>Analytics</span>
+                            <span class="badge bg-light text-muted ms-auto">Upcoming</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="menu-label mt-4">System Integration</div>
+                <div class="system-status-card p-3 mx-2 mx-md-3 rounded">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="status-indicator bg-warning me-2"></span>
+                        <span class="status-text fw-semibold small">Database</span>
+                        <span class="badge bg-dark-subtle text-dark-emphasis ms-auto small">MySQL Ready</span>
+                    </div>
+                    <p class="status-desc text-muted mb-0" style="font-size: 0.75rem;">
+                        Unconnected (Awaiting database integration)
+                    </p>
+                    <hr class="my-2 border-secondary-subtle">
+                    <div class="d-flex align-items-center mb-1">
+                        <span class="status-indicator bg-info me-2"></span>
+                        <span class="status-text fw-semibold small">AI Engine</span>
+                        <span class="badge bg-dark-subtle text-dark-emphasis ms-auto small">Standby</span>
+                    </div>
+                    <p class="status-desc text-muted mb-0" style="font-size: 0.75rem;">
+                        Gemini & LangChain backend preserved
+                    </p>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-profile d-flex align-items-center">
+                    <div class="avatar-circle flex-shrink-0">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                    <div class="user-info ms-2 overflow-hidden">
+                        <div class="user-name text-truncate">Finance Auditor</div>
+                        <div class="user-role text-muted text-truncate">Admin / Reviewer</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Top Navbar -->
+            <header class="top-navbar bg-white border-bottom">
+                <div class="container-fluid px-3 px-sm-4 py-2 py-sm-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="d-flex align-items-center min-w-0">
+                        <button class="btn btn-sm btn-outline-secondary d-xl-none me-2 flex-shrink-0" id="sidebarToggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">
+                            <i class="bi bi-list fs-5"></i>
+                        </button>
+                        <div class="page-header-title text-truncate">
+                            <h5 class="mb-0 fw-bold text-dark text-truncate">{% block page_title %}Finance Dashboard{% endblock %}</h5>
+                            <span class="text-muted small d-none d-sm-inline-block text-truncate">Enterprise Employee Expense Intelligence & Audit</span>
+                        </div>
+                    </div>
+
+                    <div class="top-navbar-actions d-flex align-items-center gap-2 ms-auto">
+                        {% if request.endpoint != 'submit_expense' %}
+                        <a href="{{ url_for('submit_expense') }}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 flex-shrink-0">
+                            <i class="bi bi-plus-circle"></i>
+                            <span class="d-none d-sm-inline">Submit Expense</span>
+                        </a>
+                        {% endif %}
+                        <button class="btn btn-primary btn-sm d-flex align-items-center gap-1 gap-sm-2 flex-shrink-0" id="btnRunAuditAction" data-bs-toggle="modal" data-bs-target="#runAuditModal">
+                            <i class="bi bi-cpu"></i>
+                            <span class="d-none d-xs-inline d-inline">Run AI Audit</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Body -->
+            <main class="page-container p-3 p-sm-4">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Run AI Audit Placeholder Modal -->
+    <div class="modal fade" id="runAuditModal" tabindex="-1" aria-labelledby="runAuditModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable mx-auto px-2" style="max-width: 500px;">
+            <div class="modal-content shadow-lg border-0 rounded-3">
+                <div class="modal-header bg-light border-bottom">
+                    <h5 class="modal-title fw-bold fs-6 fs-sm-5" id="runAuditModalLabel">
+                        <i class="bi bi-cpu text-primary me-2"></i>AI Expense Audit Action
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-3 p-sm-4">
+                    <div class="mb-3">
+                        <div class="placeholder-icon-circle mx-auto mb-3 bg-light text-primary">
+                            <i class="bi bi-shield-check display-6"></i>
+                        </div>
+                        <h6 class="fw-bold">No Expenses Queued for Audit</h6>
+                        <p class="text-muted small mb-3">
+                            The AI audit coordination engine will analyze expenses once records are integrated via the database or claim intake workflow.
+                        </p>
+                    </div>
+
+                    <div class="alert alert-secondary text-start small mb-0 p-3">
+                        <div class="fw-semibold mb-1"><i class="bi bi-diagram-3 me-1"></i> Future Audit Pipeline:</div>
+                        <ul class="mb-0 ps-3 text-muted">
+                            <li>Receipt completeness & cross-verification</li>
+                            <li>Company policy limit lookup</li>
+                            <li>Gemini-powered risk classification & observations</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <!-- Custom Dashboard JS -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
