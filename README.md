@@ -520,26 +520,51 @@ Together, these enhancements demonstrate the practical integration of AI agent t
 
 ---
 
-### Milestone 2 Updated Architecture
+## 21. Milestone 3 — Agent Coordination & Memory Systems
 
-```mermaid
-flowchart TD
-    A[Employee / Auditor] -->|Submits Expense via Web Form| B[Flask Web Application\nweb_app.py]
-    B -->|Validates & Maps Fields| C[Expense Audit Agent\napp/agents/expense_audit_agent.py]
-    C -->|Formats Structured Prompt| D[LangChain Prompt Formatting\napp/prompts/templates.py]
-    D -->|Sends Prompt to LLM| E[Gemini 3.6 Flash\napp/llm/gemini.py]
-    E -->|Requests Tool Call| F{Tool Invocation}
-    F -->|Policy Lookup| G[Expense Policy Tool\napp/tools/expense_policy_tool.py]
-    F -->|Receipt Check| H[Receipt Validation Tool\napp/tools/receipt_validation_tool.py]
-    G -->|Returns Policy Data| C
-    H -->|Returns Validation Result| C
-    E -->|Returns Final Audit| C
-    C -->|Formats Audit Report| B
-    B -->|Renders Audit Result Page| I[AI Audit Findings\naudit_result.html]
-    I -->|Assists Decision Making| J[Human Reviewer\nFinance / Audit Team]
-```
+### 21.1 Milestone Overview
 
-### Milestone 2 Updated Project Structure
+Milestone 3 evolves the system from a single monolithic agent to a collaborative **Multi-Agent Architecture** with dedicated specialized roles, short-term conversational memory, and long-term local knowledge.
+
+### 21.2 Specialized Agents & Coordination
+
+The single `Expense Audit Agent` has been supplemented (without breaking M2 functionality) by a coordinated ensemble of agents:
+
+- **Coordinator Agent**: Acts as the orchestrator. Receives the initial expense request from the web UI, creates a session-specific short-term memory context, invokes the specialized agents sequentially, and routes outputs downstream.
+- **Policy Agent**: Analyzes applicable expense policies by looking up rules from the local knowledge base and identifying policy constraints or violations.
+- **Receipt Agent**: Invokes the `Receipt Validation Tool` to check for missing documentation and validate merchant, date, and amount consistency.
+- **Analysis Agent**: Synthesizes the findings from the Policy and Receipt agents to highlight potential risks, gaps, and inconsistencies.
+- **Decision Support Agent**: Formulates the final, advisory audit report based on the combined analysis. Uses strictly cautious language ("potential risk", "requires review") and never makes definitive financial approval/rejection decisions.
+
+**Coordination Sequence**:
+`Web Request -> Coordinator -> Policy Agent -> Receipt Agent -> Analysis Agent -> Decision Support Agent -> Web UI`
+
+### 21.3 Memory Systems
+
+- **Short-Term Memory (Conversational Context)**: Implemented via an in-memory `SESSION_STORE` dictionary in the Coordinator Agent, keyed by a Flask `session_id`. It retains the submitted expense details and the final audit result for the current user session, allowing users to ask follow-up questions in the new "Follow-up Questions" chat box on the audit results page. *Limitation: Data is stored in memory and will be lost if the application restarts. This is not a permanent, database-backed conversational history.*
+- **Long-Term Local Knowledge**: Implemented via a lightweight JSON file (`knowledge/expense_policies.json`). The Policy Agent/Tool reads enterprise expense policies from this file rather than relying purely on hardcoded scripts. *Limitation: This is a local structured file, not a scalable database (e.g., no MongoDB or Vector DB used in this phase).*
+
+### 21.4 Error Handling
+
+The multi-agent workflow implements isolated error handling. If a specialized agent (e.g., the Policy Agent) fails, the Coordinator catches the exception, records the failure accurately in the workflow status, and passes the error downstream without fabricating results. The final audit output and the web UI explicitly show the failed status, ensuring the audit remains safe and transparent.
+
+### 21.5 Tests and Execution Commands
+
+Tests for Milestone 3 validate the multi-agent workflow, over-limit handling, receipt checks, memory context, and graceful error handling. 
+
+- **Run Application**: `python web_app.py`
+- **Run Tests**: `pytest tests/test_m3_workflow.py`
+- **Known Test Limitations**: The tests use mocks for the Gemini LLM calls to prevent quota exhaustion and ensure deterministic, fast execution without requiring a live API key. Execution in some restrictive sandbox environments may fail due to shell constraints.
+
+### 21.6 Known Limitations
+- The system does not permanently persist user data or conversations (no database).
+- Uploaded receipt files are validated in-memory but not stored.
+- The multi-agent workflow passes structured text rather than implementing a complex state graph (e.g., LangGraph).
+- The AI responses remain strictly advisory.
+
+---
+
+### Milestone 3 Updated Project Structure
 
 ```
 enterprise-expense-intelligence-audit/

@@ -1,7 +1,8 @@
+import os
+import json
 from langchain.tools import tool
 
-
-# Simulated company expense policies
+# Default fallback simulated company expense policies
 COMPANY_POLICIES = {
     "travel": {
         "category": "Domestic Travel",
@@ -32,6 +33,19 @@ POLICY_ALIASES = {
     "business meals": "meals"
 }
 
+def load_knowledge_policies():
+    """Attempt to load policies from the local JSON knowledge base."""
+    # Compute path relative to this file to be safe: 
+    # file is in app/tools/ -> we want ../../knowledge/expense_policies.json
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    json_path = os.path.join(base_dir, "knowledge", "expense_policies.json")
+    try:
+        if os.path.exists(json_path):
+            with open(json_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"Failed to load local knowledge policies: {e}")
+    return None
 
 @tool
 def get_expense_policy(expense_type: str) -> str:
@@ -50,7 +64,9 @@ def get_expense_policy(expense_type: str) -> str:
         expense_type, expense_type
     )
 
-    policy = COMPANY_POLICIES.get(policy_key)
+    # Try JSON knowledge first, fallback to in-memory dictionary
+    policies = load_knowledge_policies() or COMPANY_POLICIES
+    policy = policies.get(policy_key)
 
     if policy is None:
         return (

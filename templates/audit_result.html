@@ -146,6 +146,15 @@
                     </h6>
                     <span class="badge bg-dark-subtle text-dark-emphasis small">Model: Gemini 3.6 Flash</span>
                 </div>
+                
+                {% if workflow_status %}
+                <div class="mb-3 d-flex flex-wrap gap-2">
+                    <span class="badge {{ 'bg-success' if workflow_status.policy == 'Completed' else 'bg-danger' }}">Policy Agent: {{ workflow_status.policy }}</span>
+                    <span class="badge {{ 'bg-success' if workflow_status.receipt == 'Completed' else 'bg-danger' }}">Receipt Agent: {{ workflow_status.receipt }}</span>
+                    <span class="badge {{ 'bg-success' if workflow_status.analysis == 'Completed' else 'bg-danger' }}">Analysis Agent: {{ workflow_status.analysis }}</span>
+                    <span class="badge {{ 'bg-success' if workflow_status.decision == 'Completed' else 'bg-danger' }}">Decision Agent: {{ workflow_status.decision }}</span>
+                </div>
+                {% endif %}
 
                 {% if audit_status == 'success' %}
                     <!-- Formatted AI Result Container -->
@@ -189,6 +198,45 @@
                         </div>
                     </div>
                 {% endif %}
+            </div>
+            
+            <!-- Follow-up Questions Section (Short-Term Memory) -->
+            <div class="mt-4 mb-4">
+                <h6 class="text-uppercase text-dark fw-bold mb-3" style="letter-spacing: 0.05em;">
+                    <i class="bi bi-chat-dots me-1 text-primary"></i> Follow-up Questions
+                </h6>
+                <div id="chatHistory" class="p-3 bg-light rounded border mb-2" style="max-height: 200px; overflow-y: auto;">
+                    <!-- Chat messages will appear here -->
+                    <div class="text-muted small">Ask a question about this expense report. The Coordinator Agent maintains conversation context.</div>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="chatInput" class="form-control" placeholder="Ask about this expense...">
+                    <button class="btn btn-outline-primary" type="button" id="chatBtn" onclick="sendChat()">Send</button>
+                </div>
+                <script>
+                    function sendChat() {
+                        const input = document.getElementById('chatInput');
+                        const msg = input.value.trim();
+                        if (!msg) return;
+                        
+                        const chatHistory = document.getElementById('chatHistory');
+                        chatHistory.innerHTML += `<div class="mb-2 text-end"><span class="badge bg-primary text-wrap text-start p-2">${msg}</span></div>`;
+                        input.value = '';
+                        
+                        fetch('/api/chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ message: msg })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            const responseMsg = data.response || data.error;
+                            chatHistory.innerHTML += `<div class="mb-2"><span class="badge bg-secondary text-wrap text-start p-2">${responseMsg}</span></div>`;
+                            chatHistory.scrollTop = chatHistory.scrollHeight;
+                        })
+                        .catch(err => console.error(err));
+                    }
+                </script>
             </div>
 
             <!-- Footer Action Controls -->

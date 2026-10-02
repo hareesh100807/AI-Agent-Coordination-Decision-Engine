@@ -17,6 +17,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for
 from app.agents.expense_audit_agent import analyze_expense
 
 app = Flask(__name__)
+app.secret_key = "milestone3_secret_key_for_session"
 
 # Valid policy categories mapped to canonical names recognized by policy tools
 VALID_CATEGORIES = {
@@ -250,35 +251,51 @@ Description: {description if description else 'N/A'}
                 "audited_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
 
-            # 3. Invoke existing AI Agent
+            # 3. Invoke Coordinator Agent
             audit_result_text = None
             audit_status = "success"
             audit_error_message = None
+            workflow_status = {}
 
             try:
-                raw_result = analyze_expense(expense_details, receipt_details=receipt_details)
+                from app.agents.coordinator_agent import CoordinatorAgent
+                coordinator = CoordinatorAgent()
+                
+                # Get or create session ID for memory
+                from flask import session
+                import uuid
+                if 'session_id' not in session:
+                    session['session_id'] = uuid.uuid4().hex
+                    
+                result = coordinator.run_audit(expense_details, receipt_details, session['session_id'])
+                raw_result = result['report']
+                workflow_status = result['status']
                 
                 # Check if agent returned the fallback unavailable response
-                if isinstance(raw_result, str) and ("AI audit unavailable" in raw_result or "could not complete the analysis" in raw_result):
-                    audit_status = "unavailable"
+                if isinstance(raw_result, str) and ("AI audit unavailable" in raw_result or "could not complete the analysis" in raw_result or "failed" in raw_result.lower()):
+                    # Let's consider failed agent a warning but display it
                     audit_result_text = raw_result
                 else:
                     audit_result_text = raw_result
 
             except Exception as exc:
-                audit_status = "error"
-                audit_error_message = str(exc)
-                audit_result_text = (
-                    "AI audit could not be performed due to an unexpected service or network error. "
-                    "Please check your API configuration or try again later."
-                )
+                from app.llm.error_handler import is_quota_error, get_user_friendly_error
+                if is_quota_error(exc):
+                    audit_status = "unavailable"
+                    audit_error_message = None
+                    audit_result_text = get_user_friendly_error(exc, context="web_app_submit")
+                else:
+                    audit_status = "error"
+                    audit_error_message = get_user_friendly_error(exc, context="web_app_submit")
+                    audit_result_text = audit_error_message
 
             return render_template(
                 "audit_result.html",
                 claim=claim_summary,
                 audit_result=audit_result_text,
                 audit_status=audit_status,
-                audit_error_message=audit_error_message
+                audit_error_message=audit_error_message,
+                workflow_status=workflow_status
             )
 
     return render_template(
@@ -301,6 +318,27 @@ def health_check():
         "mode": "Phase 3: Flask + AI Agent Integration Active"
     })
 
+
+@app.route("/api/chat", methods=["POST"])
+def chat():
+    """
+    Handles follow-up conversational queries using the Coordinator Agent's short-term memory.
+    """
+    from flask import session
+    data = request.get_json()
+    message = data.get("message", "").strip()
+    session_id = session.get("session_id")
+    
+    if not message:
+        return jsonify({"error": "Message is required"}), 400
+    if not session_id:
+        return jsonify({"error": "No active session context."}), 400
+        
+    from app.agents.coordinator_agent import CoordinatorAgent
+    coordinator = CoordinatorAgent()
+    response = coordinator.handle_follow_up(session_id, message)
+    
+    return jsonify({"response": response})
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)

@@ -1,0 +1,20 @@
+{
+    "travel": {
+        "category": "Domestic Travel",
+        "reimbursement_limit": 3500,
+        "receipt_required": true,
+        "approval_required_above_limit": true
+    },
+    "meals": {
+        "category": "Business Meals",
+        "reimbursement_limit": 1500,
+        "receipt_required": true,
+        "approval_required_above_limit": true
+    },
+    "accommodation": {
+        "category": "Hotel Accommodation",
+        "reimbursement_limit": 5000,
+        "receipt_required": true,
+        "approval_required_above_limit": true
+    }
+}
