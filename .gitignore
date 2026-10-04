@@ -2,3 +2,22 @@ venv/
 .env
 __pycache__/
 .pytest_cache/
+# Python virtual environment
+venv/
+.venv/
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Test cache
+.pytest_cache/
+
+# Temporary files
+*.log
+.DS_Store
+Thumbs.db
