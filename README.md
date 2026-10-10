@@ -4,10 +4,10 @@
 [![Flask](https://img.shields.io/badge/Flask-2.x%2F3.x-lightgrey.svg)](https://flask.palletsprojects.com/)
 [![LangChain](https://img.shields.io/badge/LangChain-Orchestration-green.svg)](https://www.langchain.com/)
 [![Google Gemini](https://img.shields.io/badge/LLM-Gemini%203.6%20Flash-orange.svg)](https://ai.google.dev/)
-[![Milestone](https://img.shields.io/badge/Milestone-3%20(Coordination%20%26%20Memory)-informational.svg)]()
+[![Milestone](https://img.shields.io/badge/Milestone-4%20(Workflow%20Automation%20%26%20Tracking)-informational.svg)]()
 [![Internship](https://img.shields.io/badge/Infosys%20Springboard-Internship%207.0-purple.svg)]()
 
-An AI-powered enterprise expense intelligence and auditing system designed to assist corporate audit teams and employees by analyzing expense submissions, validating receipt consistency, evaluating company policy rules, highlighting compliance gaps, and generating explainable, advisory audit insights with conversational memory.
+An AI-powered enterprise expense intelligence and auditing system designed to assist corporate audit teams and employees by analyzing expense submissions, validating receipt consistency, evaluating company policy rules, executing deterministic decision routing, tracking granular execution telemetry, and generating explainable, advisory audit insights with conversational memory.
 
 ---
 
@@ -23,6 +23,7 @@ An AI-powered enterprise expense intelligence and auditing system designed to as
   - [Milestone 1 — Agent Foundation Development](#milestone-1--agent-foundation-development)
   - [Milestone 2 — Tool Integration & Action Execution](#milestone-2--tool-integration--action-execution)
   - [Milestone 3 — Agent Coordination & Memory Systems](#milestone-3--agent-coordination--memory-systems)
+  - [Milestone 4 — Workflow Automation & Execution Tracking](#milestone-4--workflow-automation--execution-tracking)
 - [8. How the System Works](#8-how-the-system-works)
 - [9. Installation and Configuration](#9-installation-and-configuration)
 - [10. Running the Application](#10-running-the-application)
@@ -38,7 +39,7 @@ An AI-powered enterprise expense intelligence and auditing system designed to as
 
 The **Enterprise Employee Expense Intelligence & Audit System** is an AI-assisted compliance and decision-support platform. It assists enterprise finance teams, internal auditors, and employees by automating the preliminary evaluation of business expense claims.
 
-The system uses a collaborative **Multi-Agent Architecture** orchestrated with LangChain and Google Gemini to evaluate claims across policy, documentation, and risk dimensions. It operates strictly as an **advisory decision-support system**: it produces transparent audit narratives to help human reviewers make informed decisions, without making binding financial approvals or rejections.
+The system uses a collaborative **Multi-Agent Architecture** orchestrated with LangChain and Google Gemini to evaluate claims across policy, documentation, and risk dimensions. In its current implementation, the system features **deterministic decision routing**, **per-agent latency tracking**, **bounded in-memory session streams**, and **sanitized Markdown reporting**. It operates strictly as an **advisory decision-support system**: it produces transparent audit narratives to help human reviewers make informed decisions, without making binding financial approvals or rejections.
 
 ---
 
@@ -48,29 +49,35 @@ Corporate expense auditing routinely faces operational bottlenecks:
 - **Time-Consuming Manual Auditing**: Finance departments spend substantial manual effort reviewing high volumes of routine reimbursement claims.
 - **Unstructured and Incomplete Submissions**: Expense claims often lack itemized breakdowns, clear business justifications, or matching receipt records.
 - **Inconsistent Policy Enforcement**: Complex policy rules (e.g., category-specific spending caps, receipt thresholds) are difficult to verify consistently across teams.
-- **Lack of Employee Guidance**: Employees frequently face claim rejections or delays without clear explanations of policy rules or missing documentation.
+- **Lack of Decision & Execution Telemetry**: Auditors often lack visibility into how automated checks were routed, which agents participated, and where processing latencies occurred.
 - **Need for Audit Explainability**: Automated auditing tools must provide transparent, step-by-step reasoning rather than opaque approval/rejection flags.
 
 ---
 
 ## 3. Solution and Key Features
 
-The system implements a coordinated multi-agent workflow that inspects expense submissions through specialized auditing roles:
+The system implements a coordinated multi-agent workflow that inspects expense submissions through specialized auditing roles and deterministic decision points:
 
-- **Web-Based Expense Intake**: Modern Flask interface featuring an executive dashboard, an expense submission form, and in-memory receipt file inspection (PDF, JPG, PNG up to 5 MB).
-- **Multi-Agent Coordination**: A central `CoordinatorAgent` executes and manages four specialized sub-agents: `PolicyAgent`, `ReceiptAgent`, `AnalysisAgent`, and `DecisionSupportAgent`.
-- **Policy Retrieval Tool**: An `@tool`-decorated function (`get_expense_policy`) retrieving spending limits, receipt requirements, and approval criteria from a structured local knowledge base (`knowledge/expense_policies.json`).
-- **Receipt Consistency Validation**: A dedicated `@tool` (`validate_receipt`) verifying merchant presence, date alignment, positive amounts, and claimed-vs-receipt amount matching.
-- **Category & Reason Alignment**: Prompt-level reasoning rules preventing hallucinated expense categories, enforcing single-category policy evaluation, and detecting category-purpose mismatches.
+- **Web-Based Expense Intake**: Modern Flask interface featuring an executive KPI dashboard, a validated expense submission form, and in-memory receipt file inspection (PDF, JPG, PNG up to 5 MB).
+- **Multi-Agent Coordination**: A central `CoordinatorAgent` manages four specialized sub-agents: `PolicyAgent`, `ReceiptAgent`, `AnalysisAgent`, and `DecisionSupportAgent`.
+- **Deterministic Triage Routing**: Evaluates structured evidence to categorize claims into advisory triage levels:
+  - `STANDARD_PROCESSING`: Policy verified, claim within limit, receipt provided & basic checks passed, zero failures.
+  - `DOCUMENTATION_POLICY_REVIEW`: Missing receipt, unverified policy category, or date discrepancies.
+  - `ELEVATED_REVIEW`: Over-limit claims, receipt amount mismatches, or system/tool failures.
+  - *Priority Order*: `ELEVATED_REVIEW` > `DOCUMENTATION_POLICY_REVIEW` > `STANDARD_PROCESSING`.
+- **Execution Telemetry & Traceability**: Monotonic timers record total pipeline duration and per-agent execution times (ms), active decision routes, trace IDs, and decision flags.
+- **Bounded In-Memory History & Dashboard Metrics**: Rolling in-memory audit history (`MAX_AUDIT_HISTORY = 50`) providing aggregated KPI metrics (Total Audited, Active Agents, Advisory Flags, Compliance Rate) and a recent claims stream without database dependencies.
+- **Safe Markdown Rendering**: Rendered using `marked.js` and sanitized via `DOMPurify` to ensure clean typography while preventing Cross-Site Scripting (XSS).
+- **Policy Retrieval Tool**: An `@tool`-decorated function (`get_expense_policy`) retrieving spending limits from `knowledge/expense_policies.json`.
+- **Receipt Consistency Validation**: A dedicated `@tool` (`validate_receipt`) verifying merchant presence, date alignment, positive amounts, and claimed-vs-receipt matching.
 - **Conversational Short-Term Memory**: In-memory session tracking (`SESSION_STORE`) allowing users to ask interactive follow-up questions regarding their audit report via `/api/chat`.
-- **Isolated Error Handling**: Layered exception handling for Gemini API rate limits (`429 RESOURCE_EXHAUSTED`), tool execution failures, and agent execution paths.
-- **Human-in-the-Loop Safeguards**: Outputs are strictly advisory with explicit disclaimers when policies or receipts are absent.
+- **Human-in-the-Loop Safeguards**: Outputs are strictly advisory with explicit disclaimers confirming human auditor oversight.
 
 ---
 
 ## 4. System Architecture
 
-The following diagram illustrates the multi-agent system architecture and the end-to-end data flow:
+The following diagram illustrates the multi-agent system architecture, decision triage routing, and data flow:
 
 ```mermaid
 flowchart TD
@@ -80,9 +87,11 @@ flowchart TD
         CLI["CLI Interface\nmain.py"]
     end
 
-    subgraph Coordination_Layer ["Coordination & Memory Layer"]
+    subgraph Coordination_Layer ["Coordination, Routing & Telemetry Layer"]
         Coord["Coordinator Agent\napp/agents/coordinator_agent.py"]
+        TriageRouter{"Deterministic Triage\n& Decision Router"}
         Memory[("In-Memory Session Store\nSESSION_STORE (Short-Term Memory)")]
+        AuditHistory[("Bounded Audit History\nAUDIT_HISTORY (Max 50 Records)")]
         FollowUp["Follow-up Chat Handler\n/api/chat"]
     end
 
@@ -103,7 +112,7 @@ flowchart TD
     end
 
     subgraph Review_Layer ["Decision Support & Human Review"]
-        AuditReport["Explainable Audit Report\naudit_result.html"]
+        AuditReport["Explainable Audit Report\n+ Execution Telemetry\naudit_result.html"]
         HumanReviewer["Human Auditor / Finance Reviewer"]
     end
 
@@ -120,13 +129,15 @@ flowchart TD
     Coord -->|2. Validate Receipt Consistency| ReceiptAg
     ReceiptAg -->|Validate Inputs| ReceiptTool
 
-    Coord -->|3. Consolidate Findings| AnalysisAg
-    AnalysisAg <-->|Inference & Gap Analysis| Gemini
+    Coord -->|3. Evaluate Rules & Assign Triage| TriageRouter
+    TriageRouter -->|Standard / Doc Review / Elevated| AnalysisAg
 
-    Coord -->|4. Generate Advisory Audit| DecisionAg
+    AnalysisAg <-->|Inference & Gap Analysis| Gemini
+    AnalysisAg -->|Consolidated Findings| DecisionAg
     DecisionAg <-->|Inference & Guardrails| Gemini
 
-    Coord -->|Return Report & Workflow Status| WebUI
+    Coord -->|4. Record Latency & Telemetry| AuditHistory
+    Coord -->|Return Report, Status & Telemetry| WebUI
     WebUI --> AuditReport
     AuditReport -->|Advisory Findings| HumanReviewer
 
@@ -144,6 +155,7 @@ flowchart TD
 | **Web Framework** | Flask | Serves executive dashboard, submission form, audit report, and `/api/chat` |
 | **Front-End Design** | HTML5, CSS3, JavaScript | Custom dashboard layout, responsive sidebar drawer, and dynamic chat box |
 | **CSS Framework** | Bootstrap 5.3 & Bootstrap Icons | Responsive UI components, cards, tables, modal structures, and icons |
+| **Markdown & Security** | `marked.js` & `DOMPurify` | Safe client-side Markdown rendering and XSS sanitization for audit reports |
 | **LLM Orchestration** | LangChain (`langchain`, `langchain-core`) | Agent abstractions, `@tool` binding, structured prompt templates, message routing |
 | **LLM Integration** | `langchain-google-genai` & `google-genai` | Interface and connectivity to Google Gemini foundation models |
 | **Foundation Model** | Google Gemini 3.6 Flash (`gemini-3.6-flash`) | Natural language understanding, policy reasoning, and report generation |
@@ -162,7 +174,7 @@ enterprise-expense-intelligence-audit/
 │   ├── agents/
 │   │   ├── __init__.py
 │   │   ├── analysis_agent.py          # Synthesizes policy and receipt findings
-│   │   ├── coordinator_agent.py       # Orchestrates multi-agent workflow & session memory
+│   │   ├── coordinator_agent.py       # Orchestrates multi-agent routing, telemetry & metrics
 │   │   ├── decision_support_agent.py  # Generates final cautious advisory audit report
 │   │   ├── expense_audit_agent.py     # Standalone agent with autonomous tool calling
 │   │   ├── policy_agent.py            # Evaluates policy rules using policy tool
@@ -186,9 +198,9 @@ enterprise-expense-intelligence-audit/
 │   └── js/
 │       └── dashboard.js               # Client-side validation, dropzone, and UI logic
 ├── templates/
-│   ├── audit_result.html              # Rendered AI audit report & follow-up chat widget
+│   ├── audit_result.html              # AI audit report, execution telemetry & sanitized Markdown
 │   ├── base.html                      # Base template with responsive sidebar drawer
-│   ├── dashboard.html                 # Finance executive KPI overview (empty state)
+│   ├── dashboard.html                 # Finance executive KPI dashboard & recent claims stream
 │   └── submit_expense.html            # Validated expense claim form with receipt upload
 ├── tests/
 │   ├── __init__.py
@@ -197,7 +209,8 @@ enterprise-expense-intelligence-audit/
 │   ├── test_expense_prompt.py         # Test for prompt formatting & system messages
 │   ├── test_gemini_error_handling.py  # Mocked test for Gemini API failure handling
 │   ├── test_gemini_module.py          # Connectivity check for app.llm.gemini module
-│   ├── test_m3_workflow.py            # Comprehensive test suite for Milestone 3 multi-agent workflow
+│   ├── test_m3_workflow.py            # Test suite for Milestone 3 multi-agent workflow
+│   ├── test_m4_workflow.py            # Test suite for Milestone 4 routing, telemetry & metrics
 │   ├── test_policy_tool_error_handling.py # Mocked test for policy tool failure handling
 │   ├── test_reasoning_refinements.py  # Mocked test suite for policy reasoning rules
 │   └── test_receipt_validation_tool.py# Smoke test for receipt validation tool
@@ -242,28 +255,44 @@ enterprise-expense-intelligence-audit/
 - **Isolated Failure Isolation**: Individual agent failures are captured gracefully, updating the workflow status indicators (`Completed` / `Failed`) without halting the pipeline or fabricating data.
 - **Milestone 3 Test Suite**: Created `tests/test_m3_workflow.py` validating standard workflows, over-limit claims, missing receipts, tool failures, memory persistence, and quota resilience.
 
+### Milestone 4 — Workflow Automation & Execution Tracking
+- **Deterministic Triage & Decision Routing**:
+  - Implemented structured parameter extraction (`extract_claim_parameters()`) and deterministic priority rules in `CoordinatorAgent`.
+  - Classifies claims into `STANDARD_PROCESSING`, `DOCUMENTATION_POLICY_REVIEW`, and `ELEVATED_REVIEW`.
+  - Generates explicit decision paths (e.g., `POLICY_CHECK -> RECEIPT_VERIFY -> ELEVATED_REVIEW (OVER_LIMIT) -> SYNTHESIS -> ADVISORY_REPORT`).
+- **Granular Execution Telemetry**:
+  - Embedded high-resolution monotonic timers (`time.perf_counter()`) to record total pipeline duration and per-agent latencies in milliseconds.
+  - Generates unique trace IDs and tracks structured decision flags (`policy_verified`, `is_over_limit`, `is_receipt_missing`, `amount_mismatch`, `has_failures`).
+- **Bounded In-Memory Audit History & Dashboard Stream**:
+  - Maintains `AUDIT_HISTORY` capped at 50 records storing privacy-sanitized metadata.
+  - Powers executive KPI metric cards (**Total Audited**, **Active Agents**, **Advisory Flags**, **Compliance Rate**) and a live claims stream on the dashboard without calling the LLM.
+- **Sanitized Markdown Rendering**:
+  - Integrated `marked.js` with `DOMPurify` to render structured headings, bullet points, and code blocks while neutralizing XSS vulnerabilities.
+- **Milestone 4 Test Suite**: Created `tests/test_m4_workflow.py` with offline mock fixtures covering routing logic, telemetry validation, failure isolation, and bounded history aggregation.
+
 ---
 
 ## 8. How the System Works
 
 ```
-1. Submission  ──>  2. Ingestion  ──>  3. Multi-Agent Audit  ──>  4. Report  ──>  5. Follow-Up
+1. Submission  ──>  2. Ingestion  ──>  3. Multi-Agent Audit & Triage  ──>  4. Report & Telemetry  ──>  5. Follow-Up
 ```
 
 1. **Expense Submission**:
    - The user opens the web application (`http://127.0.0.1:5000/submit-expense`) and enters expense details (Employee Name, Category, Amount, Date, Purpose, Description) along with optional receipt metadata and file upload.
 2. **Data Validation & Ingestion**:
    - The Flask route validates input completeness, date formats, positive amounts, and file constraints in-memory.
-3. **Multi-Agent Pipeline Execution**:
-   - The `CoordinatorAgent` initializes a session context in `SESSION_STORE`.
+3. **Multi-Agent Pipeline & Triage Execution**:
+   - The `CoordinatorAgent` initializes a session context in `SESSION_STORE` and measures execution time.
    - **Step 1 — Policy Audit**: `PolicyAgent` invokes `get_expense_policy` to retrieve category thresholds from `knowledge/expense_policies.json`.
    - **Step 2 — Receipt Audit**: `ReceiptAgent` invokes `validate_receipt` to verify merchant, amount matching, and date alignment.
-   - **Step 3 — Analysis**: `AnalysisAgent` prompts Gemini to synthesize policy compliance and receipt findings.
-   - **Step 4 — Decision Support**: `DecisionSupportAgent` generates a structured advisory report with risk assessments and next steps.
-4. **Audit Report Presentation**:
-   - `audit_result.html` renders the claim summary, agent workflow status badges, and structured audit findings.
+   - **Step 3 — Deterministic Triage**: `CoordinatorAgent` evaluates extracted claim parameters against policy and receipt findings to select the active decision path and triage classification (`STANDARD_PROCESSING`, `DOCUMENTATION_POLICY_REVIEW`, or `ELEVATED_REVIEW`).
+   - **Step 4 — Synthesis**: `AnalysisAgent` prompts Gemini to synthesize findings within the selected decision route context.
+   - **Step 5 — Decision Support**: `DecisionSupportAgent` generates a structured advisory report with risk assessments and next steps.
+4. **Audit Report Presentation & Telemetry Display**:
+   - `audit_result.html` renders the claim summary, triage badge, execution telemetry card (total and per-agent latency, trace ID, decision path), and sanitized Markdown audit findings.
 5. **Interactive Follow-Up (Conversational Memory)**:
-   - Users can type clarifying questions into the follow-up chat box. The `CoordinatorAgent` retrieves past context from `SESSION_STORE` and responds via Gemini without losing audit state.
+   - Users can ask clarifying questions in the follow-up chat box. The `CoordinatorAgent` retrieves past context from `SESSION_STORE` and responds via Gemini without losing audit state.
 
 ---
 
@@ -344,12 +373,13 @@ python main.py
 
 ## 11. Testing and Validation
 
-The test suite covers unit testing, mocked tool execution, error handling, and multi-agent coordination.
+The test suite covers unit testing, mocked tool execution, error handling, multi-agent coordination, and Milestone 4 decision telemetry.
 
 ### Test Suite Overview
 
 | Test Module | Test Type | Verification Focus | Status |
 | :--- | :--- | :--- | :--- |
+| `tests/test_m4_workflow.py` | Unit / Workflow (Mocked) | Deterministic triage, over-limit routing, missing receipts, amount mismatches, unverified categories, failure telemetry, timing accuracy, bounded history (max 50) | Automated (`pytest`) |
 | `tests/test_m3_workflow.py` | Unit / Workflow (Mocked) | Multi-agent coordination, over-limit checks, missing receipts, memory recall, 429 quota handling | Automated (`pytest`) |
 | `tests/test_reasoning_refinements.py` | Unit (Mocked) | Primary category filtering, category-purpose mismatch checks, optional field handling | Automated (`pytest` / Python) |
 | `tests/test_gemini_error_handling.py` | Unit (Mocked) | Graceful fallback when Gemini encounters runtime errors | Automated (`pytest` / Python) |
@@ -360,20 +390,19 @@ The test suite covers unit testing, mocked tool execution, error handling, and m
 | `tests/test_gemini_module.py` | Connectivity Test | Verifies `app.llm.gemini` model invocation | Live API Test |
 
 ### Running the Tests
-To execute all automated unit and workflow tests:
+To execute both Milestone 4 and Milestone 3 automated test suites:
 
 ```bash
-pytest tests/test_m3_workflow.py tests/test_reasoning_refinements.py tests/test_gemini_error_handling.py tests/test_policy_tool_error_handling.py
+python -m pytest tests/test_m4_workflow.py -v
+python -m pytest tests/test_m3_workflow.py -v
 ```
 
-To run individual standalone test scripts:
+To run all automated unit tests in the repository:
 ```bash
-python -m tests.test_reasoning_refinements
-python -m tests.test_gemini_error_handling
-python -m tests.test_policy_tool_error_handling
+python -m pytest tests/test_m4_workflow.py tests/test_m3_workflow.py tests/test_reasoning_refinements.py tests/test_gemini_error_handling.py tests/test_policy_tool_error_handling.py -v
 ```
 
-> **API Quota Note**: Live API tests require an active `GEMINI_API_KEY`. Free-tier accounts may occasionally experience `429 RESOURCE_EXHAUSTED` rate limits during high-frequency testing. The system includes built-in exception handling to manage quota pauses cleanly.
+> **API Quota Note**: Mocked test suites (`test_m4_workflow.py`, `test_m3_workflow.py`) run entirely offline without consuming API quota. Live API tests require an active `GEMINI_API_KEY`. Free-tier accounts may occasionally experience `429 RESOURCE_EXHAUSTED` rate limits during high-frequency live testing.
 
 ---
 
@@ -384,7 +413,8 @@ The project strictly follows ethical AI and enterprise security guidelines:
 ### Security Guardrails
 - **Credential Protection**: API keys are loaded via environment variables (`.env`) and excluded from Git via `.gitignore`.
 - **In-Memory File Handling**: Uploaded files are validated in-memory for size and MIME type and are never written to disk or publicly exposed.
-- **Log Sanitization**: `app/llm/error_handler.py` masks sensitive API keys from server-side error logs.
+- **XSS Sanitization**: Model outputs and follow-up chat messages are rendered as Markdown through `marked.js` and sanitized via `DOMPurify` to eliminate cross-site scripting vulnerabilities.
+- **Log & Privacy Sanitization**: `app/llm/error_handler.py` masks sensitive API keys in server logs. Global dashboard history stores only anonymized metadata (no raw employee names or reports).
 
 ### Responsible AI Principles
 - **Advisory Decision Support**: The system never makes binding financial approvals or claim rejections. Final decisions rest entirely with human auditors.
@@ -396,13 +426,14 @@ The project strictly follows ethical AI and enterprise security guidelines:
 
 ## 13. Limitations and Current Scope
 
-The system is currently in **Milestone 3 (Coordination & Memory Systems)**. The following limitations apply to the current codebase:
+The system is currently in **Milestone 4 (Workflow Automation & Execution Tracking)**. The following limitations apply to the current codebase:
 
-- **Simulated Policy Data**: Policies are maintained in a local JSON file (`knowledge/expense_policies.json`) covering three categories (Travel, Meals, Accommodation), not an external enterprise policy engine.
-- **In-Memory Session Store**: Short-term conversational context is maintained in a Python dictionary (`SESSION_STORE`). Session data resets if the web server restarts.
-- **No Database Persistence**: Expense claims, audit reports, and dashboard metrics are stateless and not persisted in a SQL/NoSQL database.
+- **Simulated Policy Data**: Policies are maintained in a local JSON file (`knowledge/expense_policies.json`) covering three categories (Travel, Meals, Accommodation), not an external enterprise policy management system.
+- **In-Memory Session & History Store**: Short-term conversational context (`SESSION_STORE`) and recent audit history (`AUDIT_HISTORY`) are maintained in Python process memory. **All session data and recent audit records are reset if the web server restarts.**
+- **No Database Persistence**: Expense claims, audit reports, and dashboard metrics are stateless across server restarts and are not persisted in a SQL/NoSQL database.
 - **No Receipt OCR / Image Parsing**: Receipt files are validated for size and format, but receipt text is not automatically extracted via OCR. Validation relies on user-entered receipt metadata.
-- **No Live ERP Integration**: The application does not connect to enterprise accounting platforms (e.g., SAP, Oracle, Workday).
+- **No Live ERP Integration**: The application does not connect to external enterprise accounting platforms (e.g., SAP, Oracle, Workday).
+- **Advisory-Only Results**: Triage levels and audit findings are non-binding recommendations designed exclusively to support human decision-making.
 
 ---
 
@@ -410,7 +441,7 @@ The system is currently in **Milestone 3 (Coordination & Memory Systems)**. The 
 
 The following capabilities represent potential roadmap enhancements:
 
-- **Persistent Database Storage**: Integration with PostgreSQL or MySQL to persist expense histories, audit logs, and dashboard analytics.
+- **Persistent Database Storage**: Integration with PostgreSQL or MySQL to persist expense histories, audit logs, and dashboard analytics across server restarts.
 - **Multimodal OCR Receipt Parsing**: Automated receipt data extraction from uploaded images and PDFs using vision LLMs or OCR engines.
 - **Enterprise Policy RAG**: Vector-database-backed Retrieval-Augmented Generation (RAG) indexing complete corporate policy handbooks.
 - **ERP & Accounting Connectors**: Webhook and REST API connectors for automated export to corporate ERP systems.

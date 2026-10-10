@@ -6,25 +6,7 @@
 {% block content %}
 <div class="dashboard-container">
 
-    <!-- Information Banner -->
-    <div class="alert alert-light border shadow-sm mb-4 p-3 rounded-3" role="alert">
-        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2">
-            <div class="d-flex align-items-start align-items-sm-center">
-                <div class="alert-icon-box bg-primary-subtle text-primary me-2 me-sm-3 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
-                    <i class="bi bi-info-circle-fill fs-5"></i>
-                </div>
-                <div class="min-w-0">
-                    <div class="fw-semibold text-dark text-break">Initial UI Milestone — Ready for Database Connection</div>
-                    <div class="text-muted small text-break">No active database records detected. Displaying default zero-state metrics and empty data views.</div>
-                </div>
-            </div>
-            <div class="mt-2 mt-md-0 flex-shrink-0 align-self-start align-self-md-center">
-                <span class="badge bg-secondary-subtle text-secondary border px-2 py-1">Empty State Active</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Executive KPI Metric Cards (Zero State) -->
+    <!-- Executive KPI Metric Cards (In-Memory Session Stream) -->
     <!-- Grid: 4 cols on Desktop (>=1200px), 2 cols on Tablet/Large Mobile (576px-1199px), 1 col on XS (<576px) -->
     <div class="row g-3 mb-4">
         <!-- KPI 1: Total Expenses Claimed -->
@@ -32,7 +14,7 @@
             <div class="card metric-card shadow-sm border-0 h-100">
                 <div class="card-body p-3 d-flex flex-column justify-content-between">
                     <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="metric-label text-muted text-uppercase fw-semibold" style="font-size: 0.75rem;">Total Claimed</span>
+                        <span class="metric-label text-muted text-uppercase fw-semibold" style="font-size: 0.75rem;">Total Audited</span>
                         <div class="metric-icon-box bg-primary-subtle text-primary rounded-3 flex-shrink-0">
                             <i class="bi bi-currency-rupee"></i>
                         </div>
@@ -41,7 +23,7 @@
                         ₹{{ "{:,.2f}".format(kpi_data.total_claimed) }}
                     </div>
                     <div class="metric-subtext text-muted small d-flex align-items-center text-truncate">
-                        <i class="bi bi-dash me-1"></i> 0 claims submitted
+                        <i class="bi bi-file-earmark-check me-1"></i> {{ kpi_data.total_audits }} claims processed
                     </div>
                 </div>
             </div>
@@ -52,27 +34,27 @@
             <div class="card metric-card shadow-sm border-0 h-100">
                 <div class="card-body p-3 d-flex flex-column justify-content-between">
                     <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="metric-label text-muted text-uppercase fw-semibold" style="font-size: 0.75rem;">Pending Audits</span>
-                        <div class="metric-icon-box bg-warning-subtle text-warning rounded-3 flex-shrink-0">
-                            <i class="bi bi-hourglass-split"></i>
+                        <span class="metric-label text-muted text-uppercase fw-semibold" style="font-size: 0.75rem;">Active Agents</span>
+                        <div class="metric-icon-box bg-info-subtle text-info rounded-3 flex-shrink-0">
+                            <i class="bi bi-cpu"></i>
                         </div>
                     </div>
                     <div class="metric-value fw-bold text-dark mb-1 text-truncate">
-                        {{ kpi_data.pending_audits }}
+                        4 Agents
                     </div>
                     <div class="metric-subtext text-muted small d-flex align-items-center text-truncate">
-                        <i class="bi bi-dash me-1"></i> 0 claims awaiting review
+                        <i class="bi bi-diagram-3 me-1"></i> Coordinated pipeline active
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- KPI 3: High-Risk Flagged -->
+        <!-- KPI 3: Flagged / Exceptions -->
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card metric-card shadow-sm border-0 h-100">
                 <div class="card-body p-3 d-flex flex-column justify-content-between">
                     <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="metric-label text-muted text-uppercase fw-semibold" style="font-size: 0.75rem;">Flagged Violations</span>
+                        <span class="metric-label text-muted text-uppercase fw-semibold" style="font-size: 0.75rem;">Advisory Flags</span>
                         <div class="metric-icon-box bg-danger-subtle text-danger rounded-3 flex-shrink-0">
                             <i class="bi bi-exclamation-triangle"></i>
                         </div>
@@ -81,7 +63,7 @@
                         {{ kpi_data.flagged_claims }}
                     </div>
                     <div class="metric-subtext text-muted small d-flex align-items-center text-truncate">
-                        <i class="bi bi-dash me-1"></i> 0 policy breaches detected
+                        <i class="bi bi-flag me-1"></i> Policy & doc exceptions
                     </div>
                 </div>
             </div>
@@ -98,27 +80,31 @@
                         </div>
                     </div>
                     <div class="metric-value fw-bold text-dark mb-1 text-truncate">
-                        {{ "{:.1f}%".format(kpi_data.compliance_rate) if kpi_data.compliance_rate > 0 else "--" }}
+                        {{ "{:.1f}%".format(kpi_data.compliance_rate) if kpi_data.total_audits > 0 else "--" }}
                     </div>
                     <div class="metric-subtext text-muted small d-flex align-items-center text-truncate">
-                        <i class="bi bi-dash me-1"></i> Insufficient data
+                        {% if kpi_data.total_audits > 0 %}
+                            <i class="bi bi-check-circle me-1 text-success"></i> Standard processing ratio
+                        {% else %}
+                            <i class="bi bi-dash me-1"></i> Awaiting first claim
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Main Section: Recent Expenses & AI Audit Queue -->
+    <!-- Main Section: Recent Audited Claims & AI Audit Queue -->
     <div class="row g-4">
         <!-- Expenses Table Container (Col 8 on Desktop, Col 12 on Tablet & Mobile) -->
         <div class="col-12 col-xl-8">
             <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
                 <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <div class="min-w-0">
-                        <h6 class="card-title fw-bold mb-0 text-dark text-truncate">Recent Expense Claims</h6>
-                        <span class="text-muted small text-truncate d-block">Live submission stream and audit status tracking</span>
+                        <h6 class="card-title fw-bold mb-0 text-dark text-truncate">Recent Audited Claims Stream</h6>
+                        <span class="text-muted small text-truncate d-block">Session telemetry and deterministic triage classifications</span>
                     </div>
-                    <span class="badge bg-light text-muted border flex-shrink-0">0 records</span>
+                    <span class="badge bg-light text-muted border flex-shrink-0">{{ recent_audits|length if recent_audits else 0 }} records</span>
                 </div>
                 <div class="card-body p-0">
                     <!-- Responsive Table Wrapper with dedicated scrollbar -->
@@ -126,57 +112,57 @@
                         <table class="table table-hover align-middle mb-0 expense-table">
                             <thead class="table-light">
                                 <tr>
-                                    <th scope="col" class="ps-3 py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Claim ID</th>
-                                    <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Employee</th>
+                                    <th scope="col" class="ps-3 py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Trace ID</th>
                                     <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Category</th>
-                                    <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Date</th>
                                     <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Amount</th>
-                                    <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Receipt</th>
-                                    <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Status</th>
-                                    <th scope="col" class="pe-3 py-3 text-end text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Action</th>
+                                    <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Timestamp</th>
+                                    <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Advisory Triage</th>
+                                    <th scope="col" class="py-3 text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Latency</th>
+                                    <th scope="col" class="pe-3 py-3 text-end text-muted text-uppercase text-nowrap small" style="font-size: 0.75rem;">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% if expenses and expenses|length > 0 %}
-                                    {% for expense in expenses %}
+                                {% if recent_audits and recent_audits|length > 0 %}
+                                    {% for audit in recent_audits %}
                                     <tr>
-                                        <td class="ps-3 fw-semibold text-dark text-nowrap">{{ expense.id }}</td>
-                                        <td class="text-nowrap">{{ expense.employee }}</td>
-                                        <td class="text-nowrap"><span class="badge bg-light text-dark border">{{ expense.category }}</span></td>
-                                        <td class="text-muted small text-nowrap">{{ expense.date }}</td>
-                                        <td class="fw-semibold text-nowrap">₹{{ "{:,.2f}".format(expense.amount) }}</td>
+                                        <td class="ps-3 fw-semibold font-monospace text-dark text-nowrap small">{{ audit.trace_id }}</td>
+                                        <td class="text-nowrap"><span class="badge bg-light text-dark border">{{ audit.category }}</span></td>
+                                        <td class="fw-semibold text-nowrap">₹{{ "{:,.2f}".format(audit.claimed_amount) }}</td>
+                                        <td class="text-muted small text-nowrap">{{ audit.timestamp }}</td>
                                         <td class="text-nowrap">
-                                            {% if expense.receipt_available %}
-                                                <span class="badge bg-success-subtle text-success">Attached</span>
+                                            {% if audit.triage_level == 'STANDARD_PROCESSING' %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle">Standard Processing</span>
+                                            {% elif audit.triage_level == 'DOCUMENTATION_POLICY_REVIEW' %}
+                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Documentation Review</span>
                                             {% else %}
-                                                <span class="badge bg-secondary-subtle text-secondary">Missing</span>
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Elevated Review</span>
                                             {% endif %}
                                         </td>
-                                        <td class="text-nowrap">
-                                            <span class="badge bg-info-subtle text-info">{{ expense.status }}</span>
-                                        </td>
+                                        <td class="text-muted small text-nowrap font-monospace">{{ audit.duration_ms }} ms</td>
                                         <td class="pe-3 text-end text-nowrap">
-                                            <button class="btn btn-sm btn-outline-primary" disabled>Audit</button>
+                                            {% if audit.status == 'Completed' %}
+                                                <span class="badge bg-success text-white">Completed</span>
+                                            {% else %}
+                                                <span class="badge bg-danger text-white">Exception</span>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
                                 {% else %}
                                     <!-- Empty State Row -->
                                     <tr>
-                                        <td colspan="8" class="text-center py-4 py-sm-5 px-3">
-                                            <div class="empty-state-wrapper py-2 py-sm-3 mx-auto" style="max-width: 420px;">
+                                        <td colspan="7" class="text-center py-4 py-sm-5 px-3">
+                                            <div class="empty-state-wrapper py-2 py-sm-3 mx-auto" style="max-width: 440px;">
                                                 <div class="empty-state-icon mb-3 text-muted opacity-50">
                                                     <i class="bi bi-inbox display-4"></i>
                                                 </div>
-                                                <h6 class="fw-bold text-dark mb-1">No Expense Records Available</h6>
+                                                <h6 class="fw-bold text-dark mb-1">No Audit Records in Current Session</h6>
                                                 <p class="text-muted small mb-3">
-                                                    The database currently contains no submitted claims. When expense claims are recorded or synchronized via MySQL, they will be listed here for AI review.
+                                                    Expense submissions processed by the multi-agent coordinator will be logged here with live latency and triage telemetry.
                                                 </p>
-                                                <div class="d-inline-flex align-items-center">
-                                                    <span class="badge bg-light text-muted border px-3 py-2 text-wrap text-break">
-                                                        <i class="bi bi-database me-1"></i> Awaiting MySQL Database Connection
-                                                    </span>
-                                                </div>
+                                                <a href="{{ url_for('submit_expense') }}" class="btn btn-primary btn-sm px-3">
+                                                    <i class="bi bi-plus-circle me-1"></i> Submit First Expense
+                                                </a>
                                             </div>
                                         </td>
                                     </tr>
@@ -190,25 +176,45 @@
 
         <!-- Sidebar / AI Audit Findings & Policy Overview Panel (Col 4 on Desktop, Col 12 on Tablet & Mobile) -->
         <div class="col-12 col-xl-4">
-            <!-- AI Audit Summary Card -->
+            <!-- AI Audit Pipeline Status Card -->
             <div class="card border-0 shadow-sm rounded-3 mb-4">
                 <div class="card-header bg-white border-bottom py-3">
                     <h6 class="card-title fw-bold mb-0 text-dark">
-                        <i class="bi bi-robot text-primary me-2"></i>AI Audit Intelligence Panel
+                        <i class="bi bi-robot text-primary me-2"></i>Multi-Agent Coordination Engine
                     </h6>
                 </div>
-                <div class="card-body p-3 p-sm-4 text-center">
-                    <div class="placeholder-visual-box p-3 p-sm-4 rounded-3 bg-light border border-dashed mb-3">
-                        <i class="bi bi-shield-lock text-muted display-6 d-block mb-2"></i>
-                        <h6 class="fw-semibold text-secondary mb-1">Audit Stream Inactive</h6>
-                        <p class="text-muted small mb-0">
-                            No active audit findings to report. Real-time Gemini agent observations will display here upon claim ingestion.
-                        </p>
+                <div class="card-body p-3 p-sm-4">
+                    <div class="d-flex align-items-center mb-3 p-2 bg-light rounded border">
+                        <div class="bg-success text-white rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                            <i class="bi bi-shield-check fs-6"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold text-dark small">Coordinator Pipeline Active</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">Deterministic Triage & Telemetry Tracking</div>
+                        </div>
                     </div>
+                    <ul class="list-group list-group-flush small mb-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                            <span class="text-muted">Policy Agent</span>
+                            <span class="badge bg-success-subtle text-success">Tool Integrated</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                            <span class="text-muted">Receipt Agent</span>
+                            <span class="badge bg-success-subtle text-success">Validation Engine</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                            <span class="text-muted">Analysis Agent</span>
+                            <span class="badge bg-success-subtle text-success">Gemini Synthesis</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                            <span class="text-muted">Decision Support Agent</span>
+                            <span class="badge bg-success-subtle text-success">Advisory Guardrails</span>
+                        </li>
+                    </ul>
                     <div class="d-grid">
-                        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#runAuditModal">
-                            <i class="bi bi-play-circle me-1"></i> Check Audit Queue
-                        </button>
+                        <a href="{{ url_for('submit_expense') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-plus-circle me-1"></i> Audit New Expense
+                        </a>
                     </div>
                 </div>
             </div>
@@ -219,11 +225,11 @@
                     <h6 class="card-title fw-bold mb-0 text-dark">
                         <i class="bi bi-journal-bookmark text-primary me-2"></i>Expense Policy Reference
                     </h6>
-                    <span class="badge bg-info-subtle text-info small">Agent Tools</span>
+                    <span class="badge bg-info-subtle text-info small">Local JSON</span>
                 </div>
                 <div class="card-body p-3">
                     <p class="text-muted small mb-3">
-                        Configured policy thresholds currently loaded into LangChain policy tools:
+                        Configured policy thresholds loaded from <code class="text-primary">knowledge/expense_policies.json</code>:
                     </p>
                     <ul class="list-group list-group-flush small">
                         <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-1 px-0 py-2">

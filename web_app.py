@@ -2,22 +2,27 @@
 Enterprise Employee Expense Intelligence & Audit System
 Professional Finance Dashboard - Web Application Entry Point
 
-Phase 3: Flask + AI Agent Integration
-- Connects expense submission to the existing LangChain + Gemini audit agent (analyze_expense).
-- Passes structured expense & receipt details to the agent workflow.
-- Captures and renders real audit findings or handles AI availability/quota errors gracefully.
-- Maintains zero database persistence; files are validated in-memory only.
+Milestone 4: Flask + Multi-Agent Coordination & Workflow Telemetry Integration
+- Connects expense submission to the CoordinatorAgent multi-agent workflow.
+- Renders real-time AI audit findings, execution telemetry, and triage classifications.
+- Integrates in-memory KPI dashboard metrics and recent audit streams.
+- Preserves short-term session conversational memory and zero-database architecture.
 """
 
 import os
+import uuid
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 
-# Import the existing AI audit agent
-from app.agents.expense_audit_agent import analyze_expense
+from app.agents.coordinator_agent import (
+    CoordinatorAgent,
+    get_dashboard_metrics,
+    get_recent_audits
+)
+from app.llm.error_handler import is_quota_error, get_user_friendly_error
 
 app = Flask(__name__)
-app.secret_key = "milestone3_secret_key_for_session"
+app.secret_key = "milestone4_secret_key_for_session"
 
 # Valid policy categories mapped to canonical names recognized by policy tools
 VALID_CATEGORIES = {
@@ -53,22 +58,16 @@ def format_file_size(size_bytes):
 @app.route("/")
 def dashboard():
     """
-    Renders the primary finance dashboard in an empty state.
-    KPI metrics initialize at zero values.
+    Renders the primary finance dashboard using aggregated in-memory metrics
+    and recent audit metadata from the CoordinatorAgent.
     """
-    kpi_data = {
-        "total_claimed": 0,
-        "pending_audits": 0,
-        "flagged_claims": 0,
-        "compliance_rate": 0.0,
-    }
-    
-    expenses = []
-    
+    kpi_data = get_dashboard_metrics()
+    recent_audits = get_recent_audits(limit=10)
+
     return render_template(
         "dashboard.html",
         kpi_data=kpi_data,
-        expenses=expenses
+        recent_audits=recent_audits
     )
 
 
@@ -76,7 +75,7 @@ def dashboard():
 def submit_expense():
     """
     Handles rendering, server-side validation, and dispatching validated
-    claims to the existing Gemini AI audit agent.
+    claims to the CoordinatorAgent multi-agent workflow.
     """
     errors = {}
     form_data = {
@@ -210,12 +209,12 @@ def submit_expense():
                             "is_pdf": ext == "pdf"
                         }
 
-        # If validation succeeds, invoke the existing AI agent
+        # If validation succeeds, invoke the CoordinatorAgent workflow
         if not errors:
             policy_category_name = CATEGORY_POLICY_NAMES.get(expense_category, expense_category.title())
             display_category = VALID_CATEGORIES.get(expense_category, policy_category_name)
 
-            # 1. Format expense_details string for analyze_expense()
+            # 1. Format expense_details string
             expense_details = f"""
 Employee: {employee_name}
 Expense Type: {policy_category_name}
@@ -225,7 +224,7 @@ Date: {expense_date_raw}
 Description: {description if description else 'N/A'}
 """
 
-            # 2. Format receipt_details dict for analyze_expense()
+            # 2. Format receipt_details dict
             receipt_details = {
                 "receipt_available": (receipt_available == "yes"),
                 "merchant": merchant if receipt_available == "yes" else "",
@@ -256,30 +255,32 @@ Description: {description if description else 'N/A'}
             audit_status = "success"
             audit_error_message = None
             workflow_status = {}
+            telemetry = {}
+            triage_level = "DOCUMENTATION_POLICY_REVIEW"
+            decision_path = ""
 
             try:
-                from app.agents.coordinator_agent import CoordinatorAgent
                 coordinator = CoordinatorAgent()
-                
+
                 # Get or create session ID for memory
-                from flask import session
-                import uuid
                 if 'session_id' not in session:
                     session['session_id'] = uuid.uuid4().hex
-                    
+
                 result = coordinator.run_audit(expense_details, receipt_details, session['session_id'])
                 raw_result = result['report']
-                workflow_status = result['status']
-                
+                workflow_status = result.get('status', {})
+                telemetry = result.get('telemetry', {})
+                triage_level = result.get('triage_level', 'DOCUMENTATION_POLICY_REVIEW')
+                decision_path = result.get('decision_path', '')
+
                 # Check if agent returned the fallback unavailable response
-                if isinstance(raw_result, str) and ("AI audit unavailable" in raw_result or "could not complete the analysis" in raw_result or "failed" in raw_result.lower()):
-                    # Let's consider failed agent a warning but display it
+                if isinstance(raw_result, str) and ("AI audit unavailable" in raw_result or "could not complete the analysis" in raw_result):
+                    audit_status = "unavailable"
                     audit_result_text = raw_result
                 else:
                     audit_result_text = raw_result
 
             except Exception as exc:
-                from app.llm.error_handler import is_quota_error, get_user_friendly_error
                 if is_quota_error(exc):
                     audit_status = "unavailable"
                     audit_error_message = None
@@ -295,7 +296,10 @@ Description: {description if description else 'N/A'}
                 audit_result=audit_result_text,
                 audit_status=audit_status,
                 audit_error_message=audit_error_message,
-                workflow_status=workflow_status
+                workflow_status=workflow_status,
+                telemetry=telemetry,
+                triage_level=triage_level,
+                decision_path=decision_path
             )
 
     return render_template(
@@ -315,7 +319,7 @@ def health_check():
         "status": "healthy",
         "service": "Enterprise Expense Intelligence UI",
         "database_connected": False,
-        "mode": "Phase 3: Flask + AI Agent Integration Active"
+        "mode": "Milestone 4: Multi-Agent Coordination & Workflow Telemetry Active"
     })
 
 
@@ -324,21 +328,20 @@ def chat():
     """
     Handles follow-up conversational queries using the Coordinator Agent's short-term memory.
     """
-    from flask import session
     data = request.get_json()
-    message = data.get("message", "").strip()
+    message = data.get("message", "").strip() if data else ""
     session_id = session.get("session_id")
-    
+
     if not message:
         return jsonify({"error": "Message is required"}), 400
     if not session_id:
         return jsonify({"error": "No active session context."}), 400
-        
-    from app.agents.coordinator_agent import CoordinatorAgent
+
     coordinator = CoordinatorAgent()
     response = coordinator.handle_follow_up(session_id, message)
-    
+
     return jsonify({"response": response})
+
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
