@@ -22,7 +22,9 @@ from app.agents.coordinator_agent import (
 from app.llm.error_handler import is_quota_error, get_user_friendly_error
 
 app = Flask(__name__)
-app.secret_key = "milestone4_secret_key_for_session"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY")
+if not app.secret_key:
+    raise RuntimeError("FLASK_SECRET_KEY environment variable is required.")
 
 # Valid policy categories mapped to canonical names recognized by policy tools
 VALID_CATEGORIES = {
@@ -344,4 +346,4 @@ def chat():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(host="127.0.0.1", port=5000, debug=False)
